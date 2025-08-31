@@ -1,9 +1,9 @@
 <?php
 session_start();
+require_once 'database_helper.php';
 
 // Initialize variables
 $error_message = '';
-$success_message = '';
 
 // Check if user is already logged in
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
@@ -23,25 +23,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = 'Please enter a valid email address.';
     } else {
-        // Demo authentication (in real app, check against database)
-        if ($email === 'demo@company.com' && $password === 'demo123') {
-            // Successful login
-            $_SESSION['logged_in'] = true;
-            $_SESSION['user_email'] = $email;
-            $_SESSION['user_name'] = 'John Doe';
-            $_SESSION['login_time'] = date('Y-m-d H:i:s');
-            $_SESSION['login_method'] = 'email';
+        // Try database authentication first
+        try {
+            global $db;
+            $user = $db->authenticateUser($email, $password);
             
-            if ($remember) {
-                // Set remember me cookie for 30 days
-                setcookie('remember_email', $email, time() + (30 * 24 * 60 * 60), '/');
+            if ($user) {
+                // Database authentication successful
+                $_SESSION['logged_in'] = true;
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_email'] = $user['email'];
+                $_SESSION['user_name'] = $user['display_name'];
+                $_SESSION['login_time'] = date('Y-m-d H:i:s');
+                $_SESSION['login_method'] = 'database';
+                
+                if ($remember) {
+                    // Set remember me cookie for 30 days
+                    setcookie('remember_email', $email, time() + (30 * 24 * 60 * 60), '/');
+                }
+                
+                // Log the successful login
+                $db->logActivity($user['id'], 'login', null, null, ['method' => 'email', 'success' => true]);
+                
+                // Redirect immediately
+                header('Location: index.php');
+                exit();
+            } else {
+                // Database auth failed, try demo credentials as fallback
+                if ($email === 'demo@company.com' && $password === 'demo123') {
+                    // Demo authentication successful
+                    $_SESSION['logged_in'] = true;
+                    $_SESSION['user_email'] = $email;
+                    $_SESSION['user_name'] = 'John Doe';
+                    $_SESSION['login_time'] = date('Y-m-d H:i:s');
+                    $_SESSION['login_method'] = 'demo';
+                    
+                    if ($remember) {
+                        // Set remember me cookie for 30 days
+                        setcookie('remember_email', $email, time() + (30 * 24 * 60 * 60), '/');
+                    }
+                    
+                    // Redirect immediately
+                    header('Location: index.php');
+                    exit();
+                } else {
+                    $error_message = 'Invalid email or password. Please try again.';
+                }
             }
-            
-            $success_message = 'Login successful! Redirecting...';
-            
-            // JavaScript redirect will be handled in the success case
-        } else {
-            $error_message = 'Invalid email or password. Please try again.';
+        } catch (Exception $e) {
+            // Database connection failed, try demo credentials as fallback
+            if ($email === 'demo@company.com' && $password === 'demo123') {
+                // Demo authentication successful
+                $_SESSION['logged_in'] = true;
+                $_SESSION['user_email'] = $email;
+                $_SESSION['user_name'] = 'John Doe';
+                $_SESSION['login_time'] = date('Y-m-d H:i:s');
+                $_SESSION['login_method'] = 'demo';
+                
+                if ($remember) {
+                    setcookie('remember_email', $email, time() + (30 * 24 * 60 * 60), '/');
+                }
+                
+                header('Location: index.php');
+                exit();
+            } else {
+                $error_message = 'Login system temporarily unavailable. Please try again later.';
+            }
         }
     }
 }
@@ -108,17 +155,6 @@ $remembered_email = $_COOKIE['remember_email'] ?? '';
                     </div>
                     <?php endif; ?>
                     
-                    <?php if ($success_message): ?>
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle"></i>
-                        <span><?php echo htmlspecialchars($success_message); ?></span>
-                    </div>
-                    <script>
-                        setTimeout(() => {
-                            window.location.href = 'index.php';
-                        }, 1000);
-                    </script>
-                    <?php endif; ?>
                     
                     <form class="login-form" id="loginForm" method="POST">
                         <div class="form-group">

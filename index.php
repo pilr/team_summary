@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once 'database_helper.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -11,13 +12,74 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 $user_name = $_SESSION['user_name'] ?? 'John Doe';
 $user_email = $_SESSION['user_email'] ?? 'john.doe@company.com';
 $login_time = $_SESSION['login_time'] ?? date('Y-m-d H:i:s');
+$user_id = $_SESSION['user_id'] ?? null;
 
-// Mock data - in a real application, this would come from a database
-$daily_stats = [
-    'urgent_messages' => rand(3, 8),
-    'mentions' => rand(8, 15),
-    'missed_chats' => rand(5, 12)
-];
+// Try to get data from database, fall back to mock data if database unavailable
+try {
+    global $db;
+    
+    if ($user_id && $_SESSION['login_method'] === 'database') {
+        // Get real data from database
+        $daily_stats = $db->getDailyStats($user_id);
+        $channels = $db->getUserChannels($user_id);
+        $delivery_logs = $db->getDeliveryLogs($user_id);
+        
+        // Convert database format to template format for channels
+        $formatted_channels = [];
+        foreach ($channels as $channel) {
+            $messages = $db->getChannelMessages($channel['id'], 3);
+            $formatted_messages = [];
+            
+            foreach ($messages as $msg) {
+                $type = 'normal';
+                if ($msg['priority'] === 'urgent') $type = 'urgent';
+                elseif ($msg['has_mentions']) $type = 'mention';
+                
+                $formatted_messages[] = [
+                    'time' => $msg['formatted_time'],
+                    'type' => $type,
+                    'content' => $msg['content'],
+                    'author' => $msg['author_name']
+                ];
+            }
+            
+            $formatted_channels[] = [
+                'name' => $channel['display_name'],
+                'icon' => $channel['icon'],
+                'message_count' => $channel['message_count'],
+                'urgent_count' => $channel['urgent_count'],
+                'mentions_count' => $channel['mentions_count'],
+                'messages' => $formatted_messages
+            ];
+        }
+        $channels = $formatted_channels;
+        
+        // Format delivery logs
+        $formatted_delivery_logs = [];
+        foreach ($delivery_logs as $log) {
+            $formatted_delivery_logs[] = [
+                'type' => $log['status'],
+                'title' => $log['subject'] ?: 'Notification delivered',
+                'time' => $log['formatted_time'],
+                'recipient' => $log['recipient'],
+                'status' => ucfirst($log['status']),
+                'error' => $log['error_message']
+            ];
+        }
+        $delivery_logs = $formatted_delivery_logs;
+        
+    } else {
+        throw new Exception("Using demo data");
+    }
+} catch (Exception $e) {
+    // Fall back to mock data if database is unavailable or user is demo
+    $daily_stats = [
+        'urgent_messages' => rand(3, 8),
+        'mentions' => rand(8, 15),
+        'missed_chats' => rand(5, 12)
+    ];
+    
+    // Mock data for demo users or when database is unavailable
 
 $channels = [
     [
@@ -122,6 +184,7 @@ $delivery_logs = [
         'status' => 'Pending'
     ]
 ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
