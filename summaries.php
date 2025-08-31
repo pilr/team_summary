@@ -294,13 +294,13 @@ function getBadgeText($type) {
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="settings.php" class="nav-link">
                         <i class="fas fa-cog"></i>
                         <span>Settings</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="account.php" class="nav-link">
                         <i class="fas fa-user"></i>
                         <span>Account</span>
                     </a>
