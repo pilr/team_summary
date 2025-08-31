@@ -29,9 +29,10 @@ define('TEAMS_CLIENT_ID', $clientId ?: 'YOUR_CLIENT_ID_HERE');
 define('TEAMS_CLIENT_SECRET', $clientSecret ?: 'YOUR_CLIENT_SECRET_HERE');
 define('TEAMS_SECRET_ID', $secretId ?: 'YOUR_SECRET_ID_HERE');
 
-// Microsoft Graph API endpoints
-define('TEAMS_AUTH_URL', 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
-define('TEAMS_TOKEN_URL', 'https://login.microsoftonline.com/common/oauth2/v2.0/token');
+// Microsoft Graph API endpoints (use tenant-specific URLs for client credentials)
+$tenantId = $secretId ?: 'common';
+define('TEAMS_AUTH_URL', "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/authorize");
+define('TEAMS_TOKEN_URL', "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token");
 define('TEAMS_GRAPH_URL', 'https://graph.microsoft.com/v1.0');
 
 // Required scopes for Teams data
