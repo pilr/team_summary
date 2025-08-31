@@ -1,5 +1,7 @@
 <?php
+ob_start(); // Start output buffering
 session_start();
+require_once 'teams_api.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -7,17 +9,31 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit();
 }
 
-// Get user information from session
-$user_name = $_SESSION['user_name'] ?? 'John Doe';
-$user_email = $_SESSION['user_email'] ?? 'john.doe@company.com';
+// Get user information from session (all from database)
+$user_name = $_SESSION['user_name'] ?? 'Unknown User';
+$user_email = $_SESSION['user_email'] ?? '';
+$user_id = $_SESSION['user_id'] ?? null;
+
+// If user_id is missing, redirect to login (database authentication required)
+if (!$user_id) {
+    error_log("Missing user_id in session, redirecting to login");
+    header('Location: login.php');
+    exit();
+}
+
+// Initialize Teams API
+$teamsAPI = new TeamsAPIHelper();
 
 // Handle date range and filters
 $date_range = $_GET['range'] ?? 'today';
 $channel_filter = $_GET['channel'] ?? 'all';
 $type_filter = $_GET['type'] ?? 'all';
 
-// Mock statistics data based on filters
-function getStatistics($channel_filter, $type_filter) {
+// Get channels from Teams API
+$channels = $teamsAPI->getAllChannels();
+
+// Get statistics data based on filters
+function getStatistics($channel_filter, $type_filter, $teamsAPI, $channels) {
     $base_stats = [
         'total_messages' => 1247,
         'urgent_messages' => 23,
@@ -25,18 +41,63 @@ function getStatistics($channel_filter, $type_filter) {
         'files_shared' => 156
     ];
     
-    // Apply filter modifications (simulation)
-    if ($channel_filter !== 'all' || $type_filter !== 'all') {
+    // If specific channel is selected, try to get real data
+    if ($channel_filter !== 'all') {
+        $selectedChannel = null;
+        foreach ($channels as $channel) {
+            if ($channel['id'] === $channel_filter) {
+                $selectedChannel = $channel;
+                break;
+            }
+        }
+        
+        if ($selectedChannel) {
+            try {
+                // Try to get real messages count from the API
+                $messages = $teamsAPI->getChannelMessages($selectedChannel['teamId'], $selectedChannel['id'], 100);
+                if (!empty($messages)) {
+                    $messageCount = count($messages);
+                    $urgentCount = 0;
+                    $mentionCount = 0;
+                    
+                    foreach ($messages as $message) {
+                        // Check for urgent indicators
+                        if (isset($message['importance']) && $message['importance'] === 'high') {
+                            $urgentCount++;
+                        }
+                        // Check for mentions (simplified check)
+                        if (isset($message['body']['content']) && strpos($message['body']['content'], '@') !== false) {
+                            $mentionCount++;
+                        }
+                    }
+                    
+                    $base_stats['total_messages'] = $messageCount;
+                    $base_stats['urgent_messages'] = $urgentCount;
+                    $base_stats['mentions'] = $mentionCount;
+                    $base_stats['files_shared'] = floor($messageCount * 0.15); // Estimate
+                }
+            } catch (Exception $e) {
+                error_log("Error getting real channel data: " . $e->getMessage());
+            }
+        }
+    }
+    
+    // Apply filter modifications for type filter
+    if ($type_filter !== 'all') {
         $modifier = 0.3 + (rand(0, 70) / 100);
         foreach ($base_stats as $key => $value) {
-            $base_stats[$key] = floor($value * $modifier);
+            if ($type_filter === 'urgent' && $key !== 'urgent_messages') {
+                $base_stats[$key] = floor($value * $modifier);
+            } elseif ($type_filter === 'mentions' && $key !== 'mentions') {
+                $base_stats[$key] = floor($value * $modifier);
+            }
         }
     }
     
     return $base_stats;
 }
 
-$statistics = getStatistics($channel_filter, $type_filter);
+$statistics = getStatistics($channel_filter, $type_filter, $teamsAPI, $channels);
 
 // Mock timeline data
 $timeline_items = [
@@ -281,10 +342,14 @@ function getBadgeText($type) {
                         <div class="summary-filters">
                             <select class="filter-select" id="channelFilter">
                                 <option value="all" <?php echo $channel_filter === 'all' ? 'selected' : ''; ?>>All Channels</option>
-                                <option value="general" <?php echo $channel_filter === 'general' ? 'selected' : ''; ?>>General</option>
-                                <option value="development" <?php echo $channel_filter === 'development' ? 'selected' : ''; ?>>Development Team</option>
-                                <option value="marketing" <?php echo $channel_filter === 'marketing' ? 'selected' : ''; ?>>Marketing</option>
-                                <option value="design" <?php echo $channel_filter === 'design' ? 'selected' : ''; ?>>Design Team</option>
+                                <?php foreach ($channels as $channel): ?>
+                                <option value="<?php echo htmlspecialchars($channel['id']); ?>" <?php echo $channel_filter === $channel['id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($channel['displayName']); ?>
+                                    <?php if (!empty($channel['teamName'])): ?>
+                                        (<?php echo htmlspecialchars($channel['teamName']); ?>)
+                                    <?php endif; ?>
+                                </option>
+                                <?php endforeach; ?>
                             </select>
                             <select class="filter-select" id="typeFilter">
                                 <option value="all" <?php echo $type_filter === 'all' ? 'selected' : ''; ?>>All Types</option>
