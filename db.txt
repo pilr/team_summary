@@ -1,0 +1,4 @@
+Database credentials
+user: u175828155_team_summary
+password: x[=5Pja3O
+db: u175828155_team_summary

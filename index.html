@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teams Activity Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-comments"></i>
+                    <span>TeamSummary</span>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Summaries</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-user"></i>
+                        <span>Account</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-link logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="mobile-menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1>Dashboard</h1>
+                </div>
+                <div class="top-bar-right">
+                    <button class="notification-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="settings-btn">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div class="user-profile">
+                        <img src="https://ui-avatars.com/api/?name=John+Doe&background=6366f1&color=fff" alt="User Avatar" class="user-avatar">
+                        <div class="user-info">
+                            <span class="user-name">John Doe</span>
+                            <span class="user-email">john.doe@company.com</span>
+                        </div>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content">
+                <!-- Daily Digest Summary Card -->
+                <section class="summary-section">
+                    <div class="card daily-digest">
+                        <div class="card-header">
+                            <h2><i class="fas fa-calendar-day"></i> Today's Teams Activity</h2>
+                            <span class="timestamp">Last updated: 2:30 PM</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="summary-stats">
+                                <div class="stat-item urgent">
+                                    <div class="stat-number">5</div>
+                                    <div class="stat-label">Urgent Messages</div>
+                                </div>
+                                <div class="stat-item mentions">
+                                    <div class="stat-number">12</div>
+                                    <div class="stat-label">Mentions</div>
+                                </div>
+                                <div class="stat-item missed">
+                                    <div class="stat-number">8</div>
+                                    <div class="stat-label">Missed Chats</div>
+                                </div>
+                            </div>
+                            <div class="summary-text">
+                                <p>You have 5 urgent messages requiring attention, 12 mentions across different channels, and 8 missed chat conversations from today.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Filters -->
+                <section class="filters-section">
+                    <div class="filters">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="urgent">Urgent Only</button>
+                        <button class="filter-btn" data-filter="mentions">Mentions Only</button>
+                    </div>
+                </section>
+
+                <!-- Channel & Chat List Section -->
+                <section class="channels-section">
+                    <div class="section-header">
+                        <h3>Channels & Chats</h3>
+                        <button class="expand-all-btn">Expand All</button>
+                    </div>
+                    
+                    <div class="channels-grid">
+                        <div class="card channel-card">
+                            <div class="channel-header" onclick="toggleChannel(this)">
+                                <div class="channel-info">
+                                    <i class="fas fa-hashtag"></i>
+                                    <span class="channel-name">General</span>
+                                    <span class="message-count">23 messages</span>
+                                </div>
+                                <div class="channel-badges">
+                                    <span class="badge urgent">2 urgent</span>
+                                    <span class="badge mentions">5 mentions</span>
+                                </div>
+                                <i class="fas fa-chevron-down expand-icon"></i>
+                            </div>
+                            <div class="channel-content collapsed">
+                                <div class="summary-item">
+                                    <div class="summary-meta">
+                                        <span class="time">10:30 AM</span>
+                                        <span class="badge urgent">Urgent</span>
+                                    </div>
+                                    <p>Project deadline moved to Friday. Need immediate feedback on the proposal.</p>
+                                    <span class="author">- Sarah Johnson</span>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-meta">
+                                        <span class="time">11:45 AM</span>
+                                        <span class="badge mention">@mention</span>
+                                    </div>
+                                    <p>@john.doe can you review the updated design mockups?</p>
+                                    <span class="author">- Mike Chen</span>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-meta">
+                                        <span class="time">2:15 PM</span>
+                                    </div>
+                                    <p>Great work on the presentation today, team!</p>
+                                    <span class="author">- Lisa Wang</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card channel-card">
+                            <div class="channel-header" onclick="toggleChannel(this)">
+                                <div class="channel-info">
+                                    <i class="fas fa-users"></i>
+                                    <span class="channel-name">Development Team</span>
+                                    <span class="message-count">45 messages</span>
+                                </div>
+                                <div class="channel-badges">
+                                    <span class="badge urgent">1 urgent</span>
+                                    <span class="badge mentions">3 mentions</span>
+                                </div>
+                                <i class="fas fa-chevron-down expand-icon"></i>
+                            </div>
+                            <div class="channel-content collapsed">
+                                <div class="summary-item">
+                                    <div class="summary-meta">
+                                        <span class="time">9:15 AM</span>
+                                        <span class="badge urgent">Urgent</span>
+                                    </div>
+                                    <p>Production deployment failed. Rolling back to previous version.</p>
+                                    <span class="author">- DevOps Team</span>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-meta">
+                                        <span class="time">1:20 PM</span>
+                                        <span class="badge mention">@mention</span>
+                                    </div>
+                                    <p>@john.doe the API endpoints are ready for testing.</p>
+                                    <span class="author">- Alex Rodriguez</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card channel-card">
+                            <div class="channel-header" onclick="toggleChannel(this)">
+                                <div class="channel-info">
+                                    <i class="fas fa-comment"></i>
+                                    <span class="channel-name">Direct Messages</span>
+                                    <span class="message-count">12 messages</span>
+                                </div>
+                                <div class="channel-badges">
+                                    <span class="badge urgent">2 urgent</span>
+                                    <span class="badge mentions">4 mentions</span>
+                                </div>
+                                <i class="fas fa-chevron-down expand-icon"></i>
+                            </div>
+                            <div class="channel-content collapsed">
+                                <div class="summary-item">
+                                    <div class="summary-meta">
+                                        <span class="time">8:45 AM</span>
+                                        <span class="badge urgent">Urgent</span>
+                                    </div>
+                                    <p>Client meeting moved to 3 PM today. Please confirm attendance.</p>
+                                    <span class="author">- Manager</span>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-meta">
+                                        <span class="time">12:30 PM</span>
+                                    </div>
+                                    <p>Thanks for the code review feedback!</p>
+                                    <span class="author">- Teammate</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Delivery Logs -->
+                <section class="logs-section">
+                    <div class="card delivery-logs">
+                        <div class="card-header">
+                            <h3><i class="fas fa-paper-plane"></i> Delivery Logs</h3>
+                            <button class="refresh-btn"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <div class="card-content">
+                            <div class="log-filters">
+                                <select class="log-type-filter">
+                                    <option value="all">All Deliveries</option>
+                                    <option value="email">Email Only</option>
+                                    <option value="teams">Teams Webhook Only</option>
+                                </select>
+                            </div>
+                            <div class="logs-list">
+                                <div class="log-item success">
+                                    <div class="log-icon">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="log-content">
+                                        <div class="log-title">Daily digest sent via email</div>
+                                        <div class="log-meta">
+                                            <span class="log-time">Today, 8:00 AM</span>
+                                            <span class="log-recipient">john.doe@company.com</span>
+                                        </div>
+                                    </div>
+                                    <div class="log-status success">Delivered</div>
+                                </div>
+                                <div class="log-item success">
+                                    <div class="log-icon">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="log-content">
+                                        <div class="log-title">Urgent alert sent via Teams webhook</div>
+                                        <div class="log-meta">
+                                            <span class="log-time">Today, 10:35 AM</span>
+                                            <span class="log-recipient">Development Team channel</span>
+                                        </div>
+                                    </div>
+                                    <div class="log-status success">Delivered</div>
+                                </div>
+                                <div class="log-item failed">
+                                    <div class="log-icon">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    </div>
+                                    <div class="log-content">
+                                        <div class="log-title">Weekly summary delivery failed</div>
+                                        <div class="log-meta">
+                                            <span class="log-time">Yesterday, 5:00 PM</span>
+                                            <span class="log-recipient">team@company.com</span>
+                                            <span class="log-error">SMTP timeout</span>
+                                        </div>
+                                    </div>
+                                    <div class="log-status failed">Failed</div>
+                                </div>
+                                <div class="log-item pending">
+                                    <div class="log-icon">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="log-content">
+                                        <div class="log-title">Evening digest queued</div>
+                                        <div class="log-meta">
+                                            <span class="log-time">Today, 6:00 PM</span>
+                                            <span class="log-recipient">john.doe@company.com</span>
+                                        </div>
+                                    </div>
+                                    <div class="log-status pending">Pending</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Navigation Overlay -->
+    <div class="mobile-nav-overlay"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

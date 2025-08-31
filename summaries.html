@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summaries - Teams Activity Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+    <link href="summaries-styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-comments"></i>
+                    <span>TeamSummary</span>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="index.html" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item active">
+                    <a href="summaries.html" class="nav-link">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Summaries</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-user"></i>
+                        <span>Account</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="login.html" class="nav-link logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="mobile-menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1>Summaries</h1>
+                </div>
+                <div class="top-bar-right">
+                    <button class="notification-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">2</span>
+                    </button>
+                    <button class="settings-btn">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div class="user-profile">
+                        <img src="https://ui-avatars.com/api/?name=John+Doe&background=6366f1&color=fff" alt="User Avatar" class="user-avatar">
+                        <div class="user-info">
+                            <span class="user-name">John Doe</span>
+                            <span class="user-email">john.doe@company.com</span>
+                        </div>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Summaries Content -->
+            <div class="summaries-content">
+                <!-- Summary Controls -->
+                <section class="summary-controls">
+                    <div class="controls-left">
+                        <div class="date-range-picker">
+                            <button class="date-preset active" data-range="today">Today</button>
+                            <button class="date-preset" data-range="week">This Week</button>
+                            <button class="date-preset" data-range="month">This Month</button>
+                            <button class="date-preset" data-range="custom">Custom Range</button>
+                        </div>
+                        <div class="custom-date-inputs" style="display: none;">
+                            <input type="date" id="startDate" class="date-input">
+                            <span class="date-separator">to</span>
+                            <input type="date" id="endDate" class="date-input">
+                        </div>
+                    </div>
+                    <div class="controls-right">
+                        <div class="summary-filters">
+                            <select class="filter-select" id="channelFilter">
+                                <option value="all">All Channels</option>
+                                <option value="general">General</option>
+                                <option value="development">Development Team</option>
+                                <option value="marketing">Marketing</option>
+                                <option value="design">Design Team</option>
+                            </select>
+                            <select class="filter-select" id="typeFilter">
+                                <option value="all">All Types</option>
+                                <option value="urgent">Urgent Only</option>
+                                <option value="mentions">Mentions Only</option>
+                                <option value="files">File Shares</option>
+                                <option value="meetings">Meeting Notes</option>
+                            </select>
+                        </div>
+                        <button class="generate-report-btn">
+                            <i class="fas fa-download"></i>
+                            <span>Export Report</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Summary Statistics -->
+                <section class="summary-stats-section">
+                    <div class="stats-grid">
+                        <div class="stat-card messages">
+                            <div class="stat-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-number">1,247</div>
+                                <div class="stat-label">Total Messages</div>
+                                <div class="stat-change positive">+12% from last period</div>
+                            </div>
+                        </div>
+                        <div class="stat-card urgent">
+                            <div class="stat-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-number">23</div>
+                                <div class="stat-label">Urgent Messages</div>
+                                <div class="stat-change negative">-5% from last period</div>
+                            </div>
+                        </div>
+                        <div class="stat-card mentions">
+                            <div class="stat-icon">
+                                <i class="fas fa-at"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-number">89</div>
+                                <div class="stat-label">Mentions</div>
+                                <div class="stat-change positive">+8% from last period</div>
+                            </div>
+                        </div>
+                        <div class="stat-card files">
+                            <div class="stat-icon">
+                                <i class="fas fa-paperclip"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-number">156</div>
+                                <div class="stat-label">Files Shared</div>
+                                <div class="stat-change positive">+15% from last period</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Summary Timeline -->
+                <section class="timeline-section">
+                    <div class="card timeline-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-clock"></i> Activity Timeline</h3>
+                            <div class="timeline-controls">
+                                <button class="timeline-view active" data-view="day">Day View</button>
+                                <button class="timeline-view" data-view="week">Week View</button>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div class="timeline">
+                                <div class="timeline-item urgent">
+                                    <div class="timeline-time">9:15 AM</div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <span class="timeline-channel">#development</span>
+                                            <span class="timeline-badge urgent">Urgent</span>
+                                        </div>
+                                        <p class="timeline-message">Production deployment failed. Rolling back to previous version immediately.</p>
+                                        <div class="timeline-meta">
+                                            <span class="timeline-author">DevOps Team</span>
+                                            <span class="timeline-reactions">5 reactions</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item mention">
+                                    <div class="timeline-time">10:30 AM</div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <span class="timeline-channel">#general</span>
+                                            <span class="timeline-badge mention">@mention</span>
+                                        </div>
+                                        <p class="timeline-message">@john.doe Project deadline moved to Friday. Need immediate feedback on the proposal.</p>
+                                        <div class="timeline-meta">
+                                            <span class="timeline-author">Sarah Johnson</span>
+                                            <span class="timeline-reactions">12 reactions</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item file">
+                                    <div class="timeline-time">11:45 AM</div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <span class="timeline-channel">#design</span>
+                                            <span class="timeline-badge file">File</span>
+                                        </div>
+                                        <p class="timeline-message">Updated mockups for the new feature. Please review and provide feedback.</p>
+                                        <div class="timeline-attachment">
+                                            <i class="fas fa-file-image"></i>
+                                            <span>UI_Mockups_v2.3.fig</span>
+                                        </div>
+                                        <div class="timeline-meta">
+                                            <span class="timeline-author">Mike Chen</span>
+                                            <span class="timeline-reactions">8 reactions</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item meeting">
+                                    <div class="timeline-time">2:00 PM</div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <span class="timeline-channel">#general</span>
+                                            <span class="timeline-badge meeting">Meeting</span>
+                                        </div>
+                                        <p class="timeline-message">Weekly team standup completed. Action items assigned to team members.</p>
+                                        <div class="timeline-meeting-summary">
+                                            <div class="meeting-stat">
+                                                <span class="meeting-label">Duration:</span>
+                                                <span class="meeting-value">45 minutes</span>
+                                            </div>
+                                            <div class="meeting-stat">
+                                                <span class="meeting-label">Attendees:</span>
+                                                <span class="meeting-value">12 people</span>
+                                            </div>
+                                            <div class="meeting-stat">
+                                                <span class="meeting-label">Action Items:</span>
+                                                <span class="meeting-value">7 assigned</span>
+                                            </div>
+                                        </div>
+                                        <div class="timeline-meta">
+                                            <span class="timeline-author">Meeting Bot</span>
+                                            <span class="timeline-reactions">3 reactions</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item normal">
+                                    <div class="timeline-time">3:30 PM</div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <span class="timeline-channel">#marketing</span>
+                                        </div>
+                                        <p class="timeline-message">Campaign performance metrics for Q4 are looking great! Exceeded targets by 15%.</p>
+                                        <div class="timeline-meta">
+                                            <span class="timeline-author">Lisa Wang</span>
+                                            <span class="timeline-reactions">15 reactions</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Summary Cards Grid -->
+                <section class="summary-cards-section">
+                    <div class="section-header">
+                        <h3>Detailed Summaries</h3>
+                        <div class="view-toggle">
+                            <button class="view-btn active" data-view="cards">
+                                <i class="fas fa-th"></i>
+                            </button>
+                            <button class="view-btn" data-view="list">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="summaries-grid" id="summariesGrid">
+                        <div class="card summary-card">
+                            <div class="summary-card-header">
+                                <div class="summary-channel">
+                                    <i class="fas fa-hashtag"></i>
+                                    <span>General</span>
+                                </div>
+                                <div class="summary-time">Today, 8:00 AM - 6:00 PM</div>
+                            </div>
+                            <div class="summary-card-content">
+                                <div class="summary-metrics">
+                                    <div class="metric">
+                                        <span class="metric-value">127</span>
+                                        <span class="metric-label">Messages</span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-value">8</span>
+                                        <span class="metric-label">Urgent</span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-value">23</span>
+                                        <span class="metric-label">Mentions</span>
+                                    </div>
+                                </div>
+                                <div class="summary-highlights">
+                                    <h4>Key Highlights</h4>
+                                    <ul>
+                                        <li>Project deadline moved to Friday - requires immediate action</li>
+                                        <li>New client onboarding process approved</li>
+                                        <li>Q4 planning meeting scheduled for next week</li>
+                                        <li>Security policy updates require team acknowledgment</li>
+                                    </ul>
+                                </div>
+                                <div class="summary-top-contributors">
+                                    <h4>Top Contributors</h4>
+                                    <div class="contributors-list">
+                                        <div class="contributor">
+                                            <img src="https://ui-avatars.com/api/?name=Sarah+Johnson&background=10b981&color=fff" alt="Sarah Johnson">
+                                            <span>Sarah J.</span>
+                                            <span class="message-count">34</span>
+                                        </div>
+                                        <div class="contributor">
+                                            <img src="https://ui-avatars.com/api/?name=Mike+Chen&background=6366f1&color=fff" alt="Mike Chen">
+                                            <span>Mike C.</span>
+                                            <span class="message-count">28</span>
+                                        </div>
+                                        <div class="contributor">
+                                            <img src="https://ui-avatars.com/api/?name=Lisa+Wang&background=8b5cf6&color=fff" alt="Lisa Wang">
+                                            <span>Lisa W.</span>
+                                            <span class="message-count">19</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="summary-card-footer">
+                                <button class="action-btn primary">View Details</button>
+                                <button class="action-btn secondary">Export</button>
+                            </div>
+                        </div>
+                        
+                        <div class="card summary-card">
+                            <div class="summary-card-header">
+                                <div class="summary-channel">
+                                    <i class="fas fa-users"></i>
+                                    <span>Development Team</span>
+                                </div>
+                                <div class="summary-time">Today, 9:00 AM - 5:30 PM</div>
+                            </div>
+                            <div class="summary-card-content">
+                                <div class="summary-metrics">
+                                    <div class="metric">
+                                        <span class="metric-value">89</span>
+                                        <span class="metric-label">Messages</span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-value">3</span>
+                                        <span class="metric-label">Urgent</span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-value">15</span>
+                                        <span class="metric-label">Mentions</span>
+                                    </div>
+                                </div>
+                                <div class="summary-highlights">
+                                    <h4>Key Highlights</h4>
+                                    <ul>
+                                        <li>Production deployment rollback completed successfully</li>
+                                        <li>API endpoints ready for testing phase</li>
+                                        <li>Code review process improvements discussed</li>
+                                        <li>New feature branch merged to main</li>
+                                    </ul>
+                                </div>
+                                <div class="summary-top-contributors">
+                                    <h4>Top Contributors</h4>
+                                    <div class="contributors-list">
+                                        <div class="contributor">
+                                            <img src="https://ui-avatars.com/api/?name=Alex+Rodriguez&background=ef4444&color=fff" alt="Alex Rodriguez">
+                                            <span>Alex R.</span>
+                                            <span class="message-count">25</span>
+                                        </div>
+                                        <div class="contributor">
+                                            <img src="https://ui-avatars.com/api/?name=DevOps+Team&background=f59e0b&color=fff" alt="DevOps Team">
+                                            <span>DevOps</span>
+                                            <span class="message-count">18</span>
+                                        </div>
+                                        <div class="contributor">
+                                            <img src="https://ui-avatars.com/api/?name=Emma+Wilson&background=06b6d4&color=fff" alt="Emma Wilson">
+                                            <span>Emma W.</span>
+                                            <span class="message-count">12</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="summary-card-footer">
+                                <button class="action-btn primary">View Details</button>
+                                <button class="action-btn secondary">Export</button>
+                            </div>
+                        </div>
+                        
+                        <div class="card summary-card">
+                            <div class="summary-card-header">
+                                <div class="summary-channel">
+                                    <i class="fas fa-paint-brush"></i>
+                                    <span>Design Team</span>
+                                </div>
+                                <div class="summary-time">Today, 10:00 AM - 4:00 PM</div>
+                            </div>
+                            <div class="summary-card-content">
+                                <div class="summary-metrics">
+                                    <div class="metric">
+                                        <span class="metric-value">45</span>
+                                        <span class="metric-label">Messages</span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-value">1</span>
+                                        <span class="metric-label">Urgent</span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-value">7</span>
+                                        <span class="metric-label">Mentions</span>
+                                    </div>
+                                </div>
+                                <div class="summary-highlights">
+                                    <h4>Key Highlights</h4>
+                                    <ul>
+                                        <li>New UI mockups v2.3 shared for review</li>
+                                        <li>Design system updates approved</li>
+                                        <li>User feedback incorporated into prototypes</li>
+                                        <li>Accessibility guidelines review completed</li>
+                                    </ul>
+                                </div>
+                                <div class="summary-top-contributors">
+                                    <h4>Top Contributors</h4>
+                                    <div class="contributors-list">
+                                        <div class="contributor">
+                                            <img src="https://ui-avatars.com/api/?name=Mike+Chen&background=6366f1&color=fff" alt="Mike Chen">
+                                            <span>Mike C.</span>
+                                            <span class="message-count">16</span>
+                                        </div>
+                                        <div class="contributor">
+                                            <img src="https://ui-avatars.com/api/?name=Sophie+Davis&background=ec4899&color=fff" alt="Sophie Davis">
+                                            <span>Sophie D.</span>
+                                            <span class="message-count">14</span>
+                                        </div>
+                                        <div class="contributor">
+                                            <img src="https://ui-avatars.com/api/?name=Tom+Wilson&background=84cc16&color=fff" alt="Tom Wilson">
+                                            <span>Tom W.</span>
+                                            <span class="message-count">8</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="summary-card-footer">
+                                <button class="action-btn primary">View Details</button>
+                                <button class="action-btn secondary">Export</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Navigation Overlay -->
+    <div class="mobile-nav-overlay"></div>
+
+    <script src="script.js"></script>
+    <script src="summaries-script.js"></script>
+</body>
+</html>
