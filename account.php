@@ -8,11 +8,18 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit();
 }
 
-// Get user information from session
-$user_name = $_SESSION['user_name'] ?? 'John Doe';
-$user_email = $_SESSION['user_email'] ?? 'john.doe@company.com';
+// Get user information from session (all from database)
+$user_name = $_SESSION['user_name'] ?? 'Unknown User';
+$user_email = $_SESSION['user_email'] ?? '';
 $user_id = $_SESSION['user_id'] ?? null;
-$login_method = $_SESSION['login_method'] ?? 'demo';
+$login_method = $_SESSION['login_method'] ?? 'database';
+
+// If user_id is missing, redirect to login (database authentication required)
+if (!$user_id) {
+    error_log("Missing user_id in session, redirecting to login");
+    header('Location: login.php');
+    exit();
+}
 
 // Handle form submissions
 $success_message = '';
@@ -28,17 +35,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error_message = 'Display name cannot be empty.';
                 } else {
                     try {
-                        if ($login_method === 'database' && $user_id) {
-                            global $db;
-                            $db->updateUserProfile($user_id, $new_name);
-                            $_SESSION['user_name'] = $new_name;
-                            $user_name = $new_name;
-                            $success_message = 'Profile updated successfully.';
-                        } else {
-                            $_SESSION['user_name'] = $new_name;
-                            $user_name = $new_name;
-                            $success_message = 'Profile updated successfully (demo mode).';
-                        }
+                        global $db;
+                        $db->updateUserProfile($user_id, $new_name);
+                        $_SESSION['user_name'] = $new_name;
+                        $user_name = $new_name;
+                        $success_message = 'Profile updated successfully.';
                     } catch (Exception $e) {
                         $error_message = 'Failed to update profile. Please try again.';
                     }
@@ -57,37 +58,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } elseif (strlen($new_password) < 6) {
                     $error_message = 'New password must be at least 6 characters long.';
                 } else {
-                    if ($login_method === 'database' && $user_id) {
-                        try {
-                            global $db;
-                            if ($db->verifyPassword($user_id, $current_password)) {
-                                $db->updatePassword($user_id, $new_password);
-                                $success_message = 'Password changed successfully.';
-                            } else {
-                                $error_message = 'Current password is incorrect.';
-                            }
-                        } catch (Exception $e) {
-                            $error_message = 'Failed to change password. Please try again.';
+                    try {
+                        global $db;
+                        if ($db->verifyPassword($user_id, $current_password)) {
+                            $db->updatePassword($user_id, $new_password);
+                            $success_message = 'Password changed successfully.';
+                        } else {
+                            $error_message = 'Current password is incorrect.';
                         }
-                    } else {
-                        $success_message = 'Password change simulated (demo mode).';
+                    } catch (Exception $e) {
+                        $error_message = 'Failed to change password. Please try again.';
                     }
                 }
                 break;
                 
             case 'delete_account':
-                if ($login_method === 'database' && $user_id) {
-                    try {
-                        global $db;
-                        $db->deleteUser($user_id);
-                        session_destroy();
-                        header('Location: login.php?message=account_deleted');
-                        exit();
-                    } catch (Exception $e) {
-                        $error_message = 'Failed to delete account. Please try again.';
-                    }
-                } else {
-                    $error_message = 'Account deletion not available in demo mode.';
+                try {
+                    global $db;
+                    $db->deleteUser($user_id);
+                    session_destroy();
+                    header('Location: login.php?message=account_deleted');
+                    exit();
+                } catch (Exception $e) {
+                    $error_message = 'Failed to delete account. Please try again.';
                 }
                 break;
         }
@@ -96,15 +89,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get user activity stats
 try {
-    if ($login_method === 'database' && $user_id) {
-        global $db;
-        $activity_stats = $db->getUserActivityStats($user_id);
-        $recent_activity = $db->getUserRecentActivity($user_id, 10);
-    } else {
-        throw new Exception("Demo mode");
-    }
+    global $db;
+    $activity_stats = $db->getUserActivityStats($user_id);
+    $recent_activity = $db->getUserRecentActivity($user_id, 10);
 } catch (Exception $e) {
-    // Mock data for demo users
+    // Mock data fallback if database unavailable
     $activity_stats = [
         'total_logins' => rand(25, 50),
         'messages_read' => rand(1500, 3000),
@@ -358,7 +347,6 @@ try {
                 </section>
 
                 <!-- Danger Zone -->
-                <?php if ($login_method === 'database'): ?>
                 <section class="account-section danger-zone">
                     <div class="card">
                         <div class="card-header">
@@ -376,7 +364,6 @@ try {
                         </div>
                     </div>
                 </section>
-                <?php endif; ?>
             </div>
         </main>
     </div>

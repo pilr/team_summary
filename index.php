@@ -14,17 +14,24 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit();
 }
 
-// Get user information from session
-$user_name = $_SESSION['user_name'] ?? 'John Doe';
-$user_email = $_SESSION['user_email'] ?? 'john.doe@company.com';
+// Get user information from session (all from database)
+$user_name = $_SESSION['user_name'] ?? 'Unknown User';
+$user_email = $_SESSION['user_email'] ?? '';
 $login_time = $_SESSION['login_time'] ?? date('Y-m-d H:i:s');
 $user_id = $_SESSION['user_id'] ?? null;
+
+// If user_id is missing, redirect to login (database authentication required)
+if (!$user_id) {
+    error_log("Missing user_id in session, redirecting to login");
+    header('Location: login.php');
+    exit();
+}
 
 // Try to get data from database, fall back to mock data if database unavailable
 try {
     global $db;
     
-    if ($user_id && $_SESSION['login_method'] === 'database') {
+    if ($user_id) {
         // Get real data from database
         $daily_stats = $db->getDailyStats($user_id);
         $channels = $db->getUserChannels($user_id);
@@ -78,7 +85,7 @@ try {
         throw new Exception("Using demo data");
     }
 } catch (Exception $e) {
-    // Fall back to mock data if database is unavailable or user is demo
+    // Fall back to mock data if database is unavailable
     $daily_stats = [
         'urgent_messages' => rand(3, 8),
         'mentions' => rand(8, 15),

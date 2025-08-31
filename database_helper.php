@@ -72,6 +72,23 @@ class DatabaseHelper {
         }
     }
     
+    public function createUser($email, $password, $displayName, $firstName = '', $lastName = '') {
+        try {
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            
+            $stmt = $this->pdo->prepare("
+                INSERT INTO users (email, password_hash, display_name, first_name, last_name, status, created_at)
+                VALUES (?, ?, ?, ?, ?, 'active', NOW())
+            ");
+            
+            $stmt->execute([$email, $hashedPassword, $displayName, $firstName, $lastName]);
+            return $this->pdo->lastInsertId();
+        } catch (PDOException $e) {
+            error_log("Create user error: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function getUserById($userId) {
         try {
             $stmt = $this->pdo->prepare("

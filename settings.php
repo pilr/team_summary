@@ -8,11 +8,18 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit();
 }
 
-// Get user information from session
-$user_name = $_SESSION['user_name'] ?? 'John Doe';
-$user_email = $_SESSION['user_email'] ?? 'john.doe@company.com';
+// Get user information from session (all from database)
+$user_name = $_SESSION['user_name'] ?? 'Unknown User';
+$user_email = $_SESSION['user_email'] ?? '';
 $user_id = $_SESSION['user_id'] ?? null;
-$login_method = $_SESSION['login_method'] ?? 'demo';
+$login_method = $_SESSION['login_method'] ?? 'database';
+
+// If user_id is missing, redirect to login (database authentication required)
+if (!$user_id) {
+    error_log("Missing user_id in session, redirecting to login");
+    header('Location: login.php');
+    exit();
+}
 
 // Handle form submissions
 $success_message = '';
@@ -37,13 +44,9 @@ $default_settings = [
 
 // Load user settings
 try {
-    if ($login_method === 'database' && $user_id) {
-        global $db;
-        $user_settings = $db->getUserSettings($user_id);
-        $settings = array_merge($default_settings, $user_settings);
-    } else {
-        $settings = $default_settings;
-    }
+    global $db;
+    $user_settings = $db->getUserSettings($user_id);
+    $settings = array_merge($default_settings, $user_settings);
 } catch (Exception $e) {
     $settings = $default_settings;
 }
@@ -63,10 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
                 
                 try {
-                    if ($login_method === 'database' && $user_id) {
-                        global $db;
-                        $db->updateUserSettings($user_id, $new_settings);
-                    }
+                    global $db;
+                    $db->updateUserSettings($user_id, $new_settings);
                     $settings = array_merge($settings, $new_settings);
                     $success_message = 'Notification settings updated successfully.';
                 } catch (Exception $e) {
@@ -82,10 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
                 
                 try {
-                    if ($login_method === 'database' && $user_id) {
-                        global $db;
-                        $db->updateUserSettings($user_id, $new_settings);
-                    }
+                    global $db;
+                    $db->updateUserSettings($user_id, $new_settings);
                     $settings = array_merge($settings, $new_settings);
                     $success_message = 'Appearance settings updated successfully.';
                 } catch (Exception $e) {
@@ -101,10 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
                 
                 try {
-                    if ($login_method === 'database' && $user_id) {
-                        global $db;
-                        $db->updateUserSettings($user_id, $new_settings);
-                    }
+                    global $db;
+                    $db->updateUserSettings($user_id, $new_settings);
                     $settings = array_merge($settings, $new_settings);
                     $success_message = 'General settings updated successfully.';
                 } catch (Exception $e) {
@@ -123,14 +120,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'settings' => $settings
                 ];
                 
-                if ($login_method === 'database' && $user_id) {
-                    try {
-                        global $db;
-                        $export_data['activity_stats'] = $db->getUserActivityStats($user_id);
-                        $export_data['recent_activity'] = $db->getUserRecentActivity($user_id, 50);
-                    } catch (Exception $e) {
-                        // Continue with basic export
-                    }
+                try {
+                    global $db;
+                    $export_data['activity_stats'] = $db->getUserActivityStats($user_id);
+                    $export_data['recent_activity'] = $db->getUserRecentActivity($user_id, 50);
+                } catch (Exception $e) {
+                    // Continue with basic export
                 }
                 
                 header('Content-Type: application/json');

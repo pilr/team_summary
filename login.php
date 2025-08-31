@@ -24,31 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = 'Please enter a valid email address.';
     } else {
-        // Check demo credentials first for immediate redirect
-        if ($email === 'demo@company.com' && $password === 'demo123') {
-            // Demo authentication successful
-            $_SESSION['logged_in'] = true;
-            $_SESSION['user_email'] = $email;
-            $_SESSION['user_name'] = 'John Doe';
-            $_SESSION['login_time'] = date('Y-m-d H:i:s');
-            $_SESSION['login_method'] = 'demo';
-            
-            if ($remember) {
-                // Set remember me cookie for 30 days
-                setcookie('remember_email', $email, time() + (30 * 24 * 60 * 60), '/');
-            }
-            
-            // Debug: Check session before redirect
-            error_log("Login successful for demo user. Session ID: " . session_id());
-            error_log("Session data: " . print_r($_SESSION, true));
-            
-            // Flush any output and redirect
-            ob_end_clean(); // Clear output buffer
-            header('Location: index.php');
-            exit();
-        }
-        
-        // Try database authentication for other users
+        // Database authentication only - no hardcoded credentials
         try {
             global $db;
             $user = $db->authenticateUser($email, $password);
@@ -74,6 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Ignore logging errors, don't prevent login
                 }
                 
+                // Debug: Check session before redirect
+                error_log("Login successful for user: " . $user['email'] . ". Session ID: " . session_id());
+                error_log("Session data: " . print_r($_SESSION, true));
+                
                 // Flush any output and redirect
                 ob_end_clean(); // Clear output buffer
                 header('Location: index.php');
@@ -82,7 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error_message = 'Invalid email or password. Please try again.';
             }
         } catch (Exception $e) {
-            // Database connection failed
+            // Database connection failed - provide more specific error
+            error_log("Database authentication failed: " . $e->getMessage());
             $error_message = 'Login system temporarily unavailable. Please try again later.';
         }
     }
@@ -210,13 +191,13 @@ $remembered_email = $_COOKIE['remember_email'] ?? '';
             </div>
         </div>
         
-        <!-- Demo Credentials Notice -->
+        <!-- Database Login Notice -->
         <div class="demo-notice">
             <div class="demo-content">
-                <i class="fas fa-info-circle"></i>
+                <i class="fas fa-database"></i>
                 <div>
-                    <strong>Demo Login:</strong>
-                    <span>Email: demo@company.com | Password: demo123</span>
+                    <strong>Database Authentication:</strong>
+                    <span>Please use valid credentials from the database</span>
                 </div>
             </div>
         </div>
