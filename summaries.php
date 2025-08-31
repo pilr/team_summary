@@ -171,72 +171,115 @@ function getTimelineItems($channel_filter, $teamsAPI, $channels, $limit = 10) {
 // Get real timeline data
 $timeline_items = getTimelineItems($channel_filter, $teamsAPI, $channels, 15);
 
-// Mock summary cards data
-$summary_cards = [
-    [
-        'channel' => 'General',
-        'icon' => 'hashtag',
-        'time_range' => 'Today, 8:00 AM - 6:00 PM',
-        'metrics' => [
-            'messages' => rand(100, 150),
-            'urgent' => rand(5, 12),
-            'mentions' => rand(15, 30)
-        ],
-        'highlights' => [
-            'Project deadline moved to Friday - requires immediate action',
-            'New client onboarding process approved',
-            'Q4 planning meeting scheduled for next week',
-            'Security policy updates require team acknowledgment'
-        ],
-        'contributors' => [
-            ['name' => 'Sarah J.', 'avatar' => 'Sarah+Johnson', 'color' => '10b981', 'messages' => 34],
-            ['name' => 'Mike C.', 'avatar' => 'Mike+Chen', 'color' => '6366f1', 'messages' => 28],
-            ['name' => 'Lisa W.', 'avatar' => 'Lisa+Wang', 'color' => '8b5cf6', 'messages' => 19]
-        ]
-    ],
-    [
-        'channel' => 'Development Team',
-        'icon' => 'users',
-        'time_range' => 'Today, 9:00 AM - 5:30 PM',
-        'metrics' => [
-            'messages' => rand(70, 100),
-            'urgent' => rand(1, 5),
-            'mentions' => rand(10, 20)
-        ],
-        'highlights' => [
-            'Production deployment rollback completed successfully',
-            'API endpoints ready for testing phase',
-            'Code review process improvements discussed',
-            'New feature branch merged to main'
-        ],
-        'contributors' => [
-            ['name' => 'Alex R.', 'avatar' => 'Alex+Rodriguez', 'color' => 'ef4444', 'messages' => 25],
-            ['name' => 'DevOps', 'avatar' => 'DevOps+Team', 'color' => 'f59e0b', 'messages' => 18],
-            ['name' => 'Emma W.', 'avatar' => 'Emma+Wilson', 'color' => '06b6d4', 'messages' => 12]
-        ]
-    ],
-    [
-        'channel' => 'Design Team',
-        'icon' => 'paint-brush',
-        'time_range' => 'Today, 10:00 AM - 4:00 PM',
-        'metrics' => [
-            'messages' => rand(35, 60),
-            'urgent' => rand(0, 2),
-            'mentions' => rand(5, 12)
-        ],
-        'highlights' => [
-            'New UI mockups v2.3 shared for review',
-            'Design system updates approved',
-            'User feedback incorporated into prototypes',
-            'Accessibility guidelines review completed'
-        ],
-        'contributors' => [
-            ['name' => 'Mike C.', 'avatar' => 'Mike+Chen', 'color' => '6366f1', 'messages' => 16],
-            ['name' => 'Sophie D.', 'avatar' => 'Sophie+Davis', 'color' => 'ec4899', 'messages' => 14],
-            ['name' => 'Tom W.', 'avatar' => 'Tom+Wilson', 'color' => '84cc16', 'messages' => 8]
-        ]
-    ]
-];
+// Generate real summary cards from Teams API data
+function generateSummaryCards($channels, $teamsAPI, $channel_filter) {
+    $summary_cards = [];
+    
+    if (empty($channels)) {
+        return $summary_cards;
+    }
+    
+    // Get up to 6 channels for summary cards
+    $channelsToSummarize = array_slice($channels, 0, 6);
+    
+    foreach ($channelsToSummarize as $channel) {
+        $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 100);
+        $messageCount = count($messages);
+        
+        $urgentCount = 0;
+        $mentionCount = 0;
+        $contributors = [];
+        $recentMessages = [];
+        
+        foreach ($messages as $message) {
+            // Count urgent messages
+            if (isset($message['importance']) && $message['importance'] === 'high') {
+                $urgentCount++;
+            }
+            
+            // Count mentions
+            if (isset($message['body']['content']) && strpos($message['body']['content'], '@') !== false) {
+                $mentionCount++;
+            }
+            
+            // Track contributors
+            $authorName = $message['from']['user']['displayName'] ?? 'Unknown User';
+            if (!isset($contributors[$authorName])) {
+                $contributors[$authorName] = 0;
+            }
+            $contributors[$authorName]++;
+            
+            // Collect recent meaningful messages for highlights
+            $content = strip_tags($message['body']['content'] ?? '');
+            if (strlen($content) > 20 && strlen($content) < 200) {
+                $recentMessages[] = $content;
+            }
+        }
+        
+        // Sort contributors by message count
+        arsort($contributors);
+        $topContributors = [];
+        $colors = ['10b981', '6366f1', '8b5cf6', 'ef4444', 'f59e0b', '06b6d4', 'ec4899', '84cc16'];
+        $colorIndex = 0;
+        
+        foreach (array_slice($contributors, 0, 3, true) as $name => $msgCount) {
+            $topContributors[] = [
+                'name' => strlen($name) > 15 ? substr($name, 0, 12) . '...' : $name,
+                'avatar' => urlencode($name),
+                'color' => $colors[$colorIndex % count($colors)],
+                'messages' => $msgCount
+            ];
+            $colorIndex++;
+        }
+        
+        // Generate highlights from recent messages
+        $highlights = [];
+        $messageTexts = array_slice($recentMessages, 0, 4);
+        foreach ($messageTexts as $text) {
+            if (strlen($text) > 15) {
+                $highlights[] = strlen($text) > 80 ? substr($text, 0, 77) . '...' : $text;
+            }
+        }
+        
+        // If no meaningful messages, show channel info
+        if (empty($highlights)) {
+            $highlights = [
+                $messageCount > 0 ? "$messageCount messages in this channel" : 'No recent messages',
+                'Channel: ' . $channel['displayName'],
+                'Team: ' . $channel['teamName']
+            ];
+        }
+        
+        // Determine time range based on message timestamps
+        $timeRange = 'Today';
+        if (!empty($messages)) {
+            $firstMsg = end($messages);
+            $lastMsg = reset($messages);
+            $startTime = date('g:i A', strtotime($firstMsg['createdDateTime']));
+            $endTime = date('g:i A', strtotime($lastMsg['createdDateTime']));
+            $timeRange = "Today, $startTime - $endTime";
+        }
+        
+        $summary_cards[] = [
+            'channel' => $channel['displayName'],
+            'teamName' => $channel['teamName'],
+            'icon' => 'hashtag',
+            'time_range' => $timeRange,
+            'metrics' => [
+                'messages' => $messageCount,
+                'urgent' => $urgentCount,
+                'mentions' => $mentionCount
+            ],
+            'highlights' => $highlights,
+            'contributors' => $topContributors
+        ];
+    }
+    
+    return $summary_cards;
+}
+
+// Generate real summary cards from API data
+$summary_cards = generateSummaryCards($channels, $teamsAPI, $channel_filter);
 
 // Function to get badge class for timeline items
 function getBadgeClass($type) {
@@ -584,12 +627,22 @@ function getBadgeText($type) {
                     </div>
                     
                     <div class="summaries-grid" id="summariesGrid">
+                        <?php if (empty($summary_cards)): ?>
+                        <div class="no-data-message">
+                            <i class="fas fa-info-circle"></i>
+                            <h4>No Summary Data Available</h4>
+                            <p>Unable to generate summaries from Microsoft Teams API. Please check your API connection.</p>
+                        </div>
+                        <?php else: ?>
                         <?php foreach ($summary_cards as $card): ?>
                         <div class="card summary-card">
                             <div class="summary-card-header">
                                 <div class="summary-channel">
                                     <i class="fas fa-<?php echo $card['icon']; ?>"></i>
                                     <span><?php echo htmlspecialchars($card['channel']); ?></span>
+                                    <?php if (!empty($card['teamName'])): ?>
+                                    <span class="team-context">(<?php echo htmlspecialchars($card['teamName']); ?>)</span>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="summary-time"><?php echo $card['time_range']; ?></div>
                             </div>
@@ -635,6 +688,7 @@ function getBadgeText($type) {
                             </div>
                         </div>
                         <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </section>
             </div>
@@ -931,6 +985,13 @@ function getBadgeText($type) {
             gap: 0.5rem;
             color: var(--primary-color);
             font-size: 0.875rem;
+        }
+        
+        .team-context {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: normal;
+            margin-left: 0.5rem;
         }
         
         @media (max-width: 768px) {
