@@ -273,23 +273,19 @@ document.addEventListener('DOMContentLoaded', function() {
     passwordToggle?.addEventListener('click', togglePasswordVisibility);
     
     // Form submission
-    loginForm?.addEventListener('submit', async function(event) {
-        event.preventDefault();
-        
+    loginForm?.addEventListener('submit', function(event) {
+        // Only prevent default if validation fails
         if (!validateForm()) {
+            event.preventDefault();
             return;
         }
         
-        const email = emailInput.value.trim();
-        const password = passwordInput.value.trim();
+        // Show loading state while form submits
+        loginBtn.classList.add('loading');
+        loginBtn.disabled = true;
         
-        const success = await simulateLogin(email, password);
-        
-        // Reset loading state if login failed
-        if (!success) {
-            loginBtn.classList.remove('loading');
-            loginBtn.disabled = false;
-        }
+        // Let the form submit normally to PHP - don't prevent default
+        // The PHP backend will handle authentication and redirect
     });
     
     // Social login buttons
