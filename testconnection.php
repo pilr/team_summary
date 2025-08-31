@@ -32,7 +32,12 @@ if ($_POST) {
             } elseif (strpos($line, 'Client Secret:') === 0) {
                 $clientSecret = trim(substr($line, 14));
             } elseif (strpos($line, 'Secret ID:') === 0) {
-                $tenantId = trim(substr($line, 10));
+                // Keep for backward compatibility
+                if (empty($tenantId)) {
+                    $tenantId = trim(substr($line, 10));
+                }
+            } elseif (strpos($line, 'Tenant ID (Directory ID):') === 0) {
+                $tenantId = trim(substr($line, 26));
             }
         }
     }

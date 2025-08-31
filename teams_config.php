@@ -6,9 +6,10 @@
 $clientId = getenv('TEAMS_CLIENT_ID');
 $clientSecret = getenv('TEAMS_CLIENT_SECRET'); 
 $secretId = getenv('TEAMS_SECRET_ID');
+$tenantId = getenv('TEAMS_TENANT_ID');
 
 // If not found in environment, try to load from team_summary.txt
-if (!$clientId || !$clientSecret || !$secretId) {
+if (!$clientId || !$clientSecret || !$tenantId) {
     $credentialsFile = __DIR__ . '/team_summary.txt';
     if (file_exists($credentialsFile)) {
         $lines = file($credentialsFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -19,6 +20,8 @@ if (!$clientId || !$clientSecret || !$secretId) {
                 $clientSecret = trim(substr($line, 14));
             } elseif (strpos($line, 'Secret ID:') === 0) {
                 $secretId = trim(substr($line, 10));
+            } elseif (strpos($line, 'Tenant ID (Directory ID):') === 0) {
+                $tenantId = trim(substr($line, 26));
             }
         }
     }
@@ -28,11 +31,12 @@ if (!$clientId || !$clientSecret || !$secretId) {
 define('TEAMS_CLIENT_ID', $clientId ?: 'YOUR_CLIENT_ID_HERE');
 define('TEAMS_CLIENT_SECRET', $clientSecret ?: 'YOUR_CLIENT_SECRET_HERE');
 define('TEAMS_SECRET_ID', $secretId ?: 'YOUR_SECRET_ID_HERE');
+define('TEAMS_TENANT_ID', $tenantId ?: 'YOUR_TENANT_ID_HERE');
 
 // Microsoft Graph API endpoints (use tenant-specific URLs for client credentials)
-$tenantId = $secretId ?: 'common';
-define('TEAMS_AUTH_URL', "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/authorize");
-define('TEAMS_TOKEN_URL', "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token");
+$actualTenantId = $tenantId ?: 'common';
+define('TEAMS_AUTH_URL', "https://login.microsoftonline.com/{$actualTenantId}/oauth2/v2.0/authorize");
+define('TEAMS_TOKEN_URL', "https://login.microsoftonline.com/{$actualTenantId}/oauth2/v2.0/token");
 define('TEAMS_GRAPH_URL', 'https://graph.microsoft.com/v1.0');
 
 // Required scopes for Teams data
