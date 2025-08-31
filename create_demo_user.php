@@ -6,14 +6,13 @@ try {
     global $db;
     
     // Check if demo user already exists
-    $stmt = $db->pdo->prepare("SELECT id FROM users WHERE email = ?");
-    $stmt->execute(['demo@company.com']);
-    $existingUser = $stmt->fetch();
+    $existingUser = $db->getUserByEmail('demo@company.com');
     
     if ($existingUser) {
         echo "Demo user already exists with ID: " . $existingUser['id'] . "\n";
         echo "Email: demo@company.com\n";
         echo "Password: demo123\n";
+        echo "Display Name: " . $existingUser['display_name'] . "\n";
         exit();
     }
     

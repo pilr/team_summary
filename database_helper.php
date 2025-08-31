@@ -89,6 +89,22 @@ class DatabaseHelper {
         }
     }
 
+    public function getUserByEmail($email) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT id, email, first_name, last_name, display_name, 
+                       job_title, department, avatar_url, status
+                FROM users 
+                WHERE email = ? AND status = 'active'
+            ");
+            $stmt->execute([$email]);
+            return $stmt->fetch();
+        } catch (PDOException $e) {
+            error_log("Get user by email error: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function getUserById($userId) {
         try {
             $stmt = $this->pdo->prepare("
