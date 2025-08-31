@@ -1,9 +1,15 @@
 <?php
+ob_start(); // Start output buffering
 session_start();
 require_once 'database_helper.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    // Debug: Log why redirect is happening
+    error_log("Index.php redirect to login. Session ID: " . session_id());
+    error_log("Session logged_in value: " . (isset($_SESSION['logged_in']) ? ($_SESSION['logged_in'] ? 'true' : 'false') : 'not set'));
+    error_log("Full session data: " . print_r($_SESSION, true));
+    
     header('Location: login.php');
     exit();
 }
@@ -219,13 +225,13 @@ $delivery_logs = [
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="settings.php" class="nav-link">
                         <i class="fas fa-cog"></i>
                         <span>Settings</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="account.php" class="nav-link">
                         <i class="fas fa-user"></i>
                         <span>Account</span>
                     </a>

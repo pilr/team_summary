@@ -38,15 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 setcookie('remember_email', $email, time() + (30 * 24 * 60 * 60), '/');
             }
             
-            // Try PHP redirect first, then JavaScript fallback
-            if (!headers_sent()) {
-                header('Location: index.php');
-                exit();
-            } else {
-                // Headers already sent, use JavaScript redirect
-                echo '<script>window.location.href = "index.php";</script>';
-                exit();
-            }
+            // Debug: Check session before redirect
+            error_log("Login successful for demo user. Session ID: " . session_id());
+            error_log("Session data: " . print_r($_SESSION, true));
+            
+            // Flush any output and redirect
+            ob_end_clean(); // Clear output buffer
+            header('Location: index.php');
+            exit();
         }
         
         // Try database authentication for other users
@@ -75,15 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Ignore logging errors, don't prevent login
                 }
                 
-                // Try PHP redirect first, then JavaScript fallback
-                if (!headers_sent()) {
-                    header('Location: index.php');
-                    exit();
-                } else {
-                    // Headers already sent, use JavaScript redirect
-                    echo '<script>window.location.href = "index.php";</script>';
-                    exit();
-                }
+                // Flush any output and redirect
+                ob_end_clean(); // Clear output buffer
+                header('Location: index.php');
+                exit();
             } else {
                 $error_message = 'Invalid email or password. Please try again.';
             }
