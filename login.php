@@ -222,7 +222,28 @@ $remembered_email = $_COOKIE['remember_email'] ?? '';
         </div>
     </div>
     
-    <script src="login-script.js"></script>
+    <!-- Temporarily disable custom JavaScript to test form submission -->
+    <!--<script src="login-script.js"></script>-->
+    
+    <script>
+        // Minimal JavaScript - just for password toggle and cosmetic effects
+        document.addEventListener('DOMContentLoaded', function() {
+            // Password toggle functionality
+            const passwordToggle = document.getElementById('passwordToggle');
+            const passwordInput = document.getElementById('password');
+            
+            if (passwordToggle && passwordInput) {
+                passwordToggle.addEventListener('click', function() {
+                    const type = passwordInput.type === 'password' ? 'text' : 'password';
+                    passwordInput.type = type;
+                    
+                    const icon = this.querySelector('i');
+                    icon.classList.toggle('fa-eye');
+                    icon.classList.toggle('fa-eye-slash');
+                });
+            }
+        });
+    </script>
     <script>
         // Handle social login
         function handleSocialLogin(provider) {

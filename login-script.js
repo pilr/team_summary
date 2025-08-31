@@ -274,18 +274,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Form submission
     loginForm?.addEventListener('submit', function(event) {
-        // Only prevent default if validation fails
-        if (!validateForm()) {
-            event.preventDefault();
-            return;
-        }
-        
         // Show loading state while form submits
         loginBtn.classList.add('loading');
         loginBtn.disabled = true;
         
-        // Let the form submit normally to PHP - don't prevent default
-        // The PHP backend will handle authentication and redirect
+        // Let the form submit normally to PHP - no preventDefault needed
+        // PHP backend handles all validation and authentication
     });
     
     // Social login buttons
