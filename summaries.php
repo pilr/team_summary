@@ -29,19 +29,23 @@ $date_range = $_GET['range'] ?? 'today';
 $channel_filter = $_GET['channel'] ?? 'all';
 $type_filter = $_GET['type'] ?? 'all';
 
-// Get channels from Teams API
+// Get channels from Teams API (real-time, no cache)
 $channels = $teamsAPI->getAllChannels();
 
-// Get statistics data based on filters
+// Get real statistics data based on filters
 function getStatistics($channel_filter, $type_filter, $teamsAPI, $channels) {
-    $base_stats = [
-        'total_messages' => 1247,
-        'urgent_messages' => 23,
-        'mentions' => 89,
-        'files_shared' => 156
+    $stats = [
+        'total_messages' => 0,
+        'urgent_messages' => 0,
+        'mentions' => 0,
+        'files_shared' => 0
     ];
     
-    // If specific channel is selected, try to get real data
+    if (empty($channels)) {
+        return $stats;
+    }
+    
+    // If specific channel is selected, get data for that channel only
     if ($channel_filter !== 'all') {
         $selectedChannel = null;
         foreach ($channels as $channel) {
@@ -52,102 +56,120 @@ function getStatistics($channel_filter, $type_filter, $teamsAPI, $channels) {
         }
         
         if ($selectedChannel) {
-            try {
-                // Try to get real messages count from the API
-                $messages = $teamsAPI->getChannelMessages($selectedChannel['teamId'], $selectedChannel['id'], 100);
-                if (!empty($messages)) {
-                    $messageCount = count($messages);
-                    $urgentCount = 0;
-                    $mentionCount = 0;
-                    
-                    foreach ($messages as $message) {
-                        // Check for urgent indicators
-                        if (isset($message['importance']) && $message['importance'] === 'high') {
-                            $urgentCount++;
-                        }
-                        // Check for mentions (simplified check)
-                        if (isset($message['body']['content']) && strpos($message['body']['content'], '@') !== false) {
-                            $mentionCount++;
-                        }
-                    }
-                    
-                    $base_stats['total_messages'] = $messageCount;
-                    $base_stats['urgent_messages'] = $urgentCount;
-                    $base_stats['mentions'] = $mentionCount;
-                    $base_stats['files_shared'] = floor($messageCount * 0.15); // Estimate
+            $messages = $teamsAPI->getChannelMessages($selectedChannel['teamId'], $selectedChannel['id'], 100);
+            $messageCount = count($messages);
+            $urgentCount = 0;
+            $mentionCount = 0;
+            $fileCount = 0;
+            
+            foreach ($messages as $message) {
+                // Check for urgent indicators
+                if (isset($message['importance']) && $message['importance'] === 'high') {
+                    $urgentCount++;
                 }
-            } catch (Exception $e) {
-                error_log("Error getting real channel data: " . $e->getMessage());
+                // Check for mentions
+                if (isset($message['body']['content']) && strpos($message['body']['content'], '@') !== false) {
+                    $mentionCount++;
+                }
+                // Check for file attachments
+                if (isset($message['attachments']) && !empty($message['attachments'])) {
+                    $fileCount++;
+                }
+            }
+            
+            $stats['total_messages'] = $messageCount;
+            $stats['urgent_messages'] = $urgentCount;
+            $stats['mentions'] = $mentionCount;
+            $stats['files_shared'] = $fileCount;
+        }
+    } else {
+        // Get aggregated data for all channels
+        foreach ($channels as $channel) {
+            $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 50);
+            $stats['total_messages'] += count($messages);
+            
+            foreach ($messages as $message) {
+                if (isset($message['importance']) && $message['importance'] === 'high') {
+                    $stats['urgent_messages']++;
+                }
+                if (isset($message['body']['content']) && strpos($message['body']['content'], '@') !== false) {
+                    $stats['mentions']++;
+                }
+                if (isset($message['attachments']) && !empty($message['attachments'])) {
+                    $stats['files_shared']++;
+                }
             }
         }
     }
     
-    // Apply filter modifications for type filter
-    if ($type_filter !== 'all') {
-        $modifier = 0.3 + (rand(0, 70) / 100);
-        foreach ($base_stats as $key => $value) {
-            if ($type_filter === 'urgent' && $key !== 'urgent_messages') {
-                $base_stats[$key] = floor($value * $modifier);
-            } elseif ($type_filter === 'mentions' && $key !== 'mentions') {
-                $base_stats[$key] = floor($value * $modifier);
-            }
-        }
-    }
-    
-    return $base_stats;
+    return $stats;
 }
 
 $statistics = getStatistics($channel_filter, $type_filter, $teamsAPI, $channels);
 
-// Mock timeline data
-$timeline_items = [
-    [
-        'time' => '9:15 AM',
-        'type' => 'urgent',
-        'channel' => '#development',
-        'message' => 'Production deployment failed. Rolling back to previous version immediately.',
-        'author' => 'DevOps Team',
-        'reactions' => 5
-    ],
-    [
-        'time' => '10:30 AM',
-        'type' => 'mention',
-        'channel' => '#general',
-        'message' => '@' . explode('@', $user_email)[0] . ' Project deadline moved to Friday. Need immediate feedback on the proposal.',
-        'author' => 'Sarah Johnson',
-        'reactions' => 12
-    ],
-    [
-        'time' => '11:45 AM',
-        'type' => 'file',
-        'channel' => '#design',
-        'message' => 'Updated mockups for the new feature. Please review and provide feedback.',
-        'author' => 'Mike Chen',
-        'reactions' => 8,
-        'attachment' => 'UI_Mockups_v2.3.fig'
-    ],
-    [
-        'time' => '2:00 PM',
-        'type' => 'meeting',
-        'channel' => '#general',
-        'message' => 'Weekly team standup completed. Action items assigned to team members.',
-        'author' => 'Meeting Bot',
-        'reactions' => 3,
-        'meeting_data' => [
-            'duration' => '45 minutes',
-            'attendees' => '12 people',
-            'action_items' => '7 assigned'
-        ]
-    ],
-    [
-        'time' => '3:30 PM',
-        'type' => 'normal',
-        'channel' => '#marketing',
-        'message' => 'Campaign performance metrics for Q4 are looking great! Exceeded targets by 15%.',
-        'author' => 'Lisa Wang',
-        'reactions' => 15
-    ]
-];
+// Get real timeline data from selected channels
+function getTimelineItems($channel_filter, $teamsAPI, $channels, $limit = 10) {
+    $timelineItems = [];
+    
+    if (empty($channels)) {
+        return $timelineItems;
+    }
+    
+    if ($channel_filter !== 'all') {
+        // Get messages from selected channel only
+        $selectedChannel = null;
+        foreach ($channels as $channel) {
+            if ($channel['id'] === $channel_filter) {
+                $selectedChannel = $channel;
+                break;
+            }
+        }
+        
+        if ($selectedChannel) {
+            $messages = $teamsAPI->getChannelMessages($selectedChannel['teamId'], $selectedChannel['id'], $limit);
+            foreach ($messages as $message) {
+                $timelineItems[] = [
+                    'time' => date('g:i A', strtotime($message['createdDateTime'])),
+                    'date' => date('Y-m-d', strtotime($message['createdDateTime'])),
+                    'type' => isset($message['importance']) && $message['importance'] === 'high' ? 'urgent' : 'normal',
+                    'channel' => '#' . $selectedChannel['displayName'],
+                    'teamName' => $selectedChannel['teamName'],
+                    'message' => strip_tags($message['body']['content'] ?? 'No content'),
+                    'author' => $message['from']['user']['displayName'] ?? 'Unknown User',
+                    'hasAttachments' => isset($message['attachments']) && !empty($message['attachments'])
+                ];
+            }
+        }
+    } else {
+        // Get messages from all channels (limited to avoid too many API calls)
+        $channelsToCheck = array_slice($channels, 0, 5); // Limit to first 5 channels
+        foreach ($channelsToCheck as $channel) {
+            $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 3);
+            foreach ($messages as $message) {
+                $timelineItems[] = [
+                    'time' => date('g:i A', strtotime($message['createdDateTime'])),
+                    'date' => date('Y-m-d', strtotime($message['createdDateTime'])),
+                    'type' => isset($message['importance']) && $message['importance'] === 'high' ? 'urgent' : 'normal',
+                    'channel' => '#' . $channel['displayName'],
+                    'teamName' => $channel['teamName'],
+                    'message' => strip_tags($message['body']['content'] ?? 'No content'),
+                    'author' => $message['from']['user']['displayName'] ?? 'Unknown User',
+                    'hasAttachments' => isset($message['attachments']) && !empty($message['attachments'])
+                ];
+            }
+        }
+    }
+    
+    // Sort by creation date (newest first)
+    usort($timelineItems, function($a, $b) {
+        return strtotime($b['date'] . ' ' . $b['time']) - strtotime($a['date'] . ' ' . $a['time']);
+    });
+    
+    return array_slice($timelineItems, 0, $limit);
+}
+
+// Get real timeline data
+$timeline_items = getTimelineItems($channel_filter, $teamsAPI, $channels, 15);
 
 // Mock summary cards data
 $summary_cards = [
@@ -474,6 +496,79 @@ function getBadgeText($type) {
                     </div>
                 </section>
 
+                <!-- Channels and Members Section -->
+                <section class="channels-members-section">
+                    <div class="section-header">
+                        <h3>Teams Channels & Members</h3>
+                        <div class="refresh-indicator" id="refreshIndicator" style="display: none;">
+                            <i class="fas fa-sync fa-spin"></i>
+                            Loading real-time data...
+                        </div>
+                    </div>
+                    
+                    <div class="channels-grid">
+                        <?php if (empty($channels)): ?>
+                        <div class="no-data-message">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h4>No Teams Data Available</h4>
+                            <p>Unable to connect to Microsoft Teams API. Please check your configuration.</p>
+                        </div>
+                        <?php else: ?>
+                        <?php foreach ($channels as $channel): ?>
+                        <div class="card channel-member-card">
+                            <div class="channel-header">
+                                <div class="channel-info">
+                                    <i class="fas fa-hashtag"></i>
+                                    <div class="channel-details">
+                                        <h4><?php echo htmlspecialchars($channel['displayName']); ?></h4>
+                                        <span class="team-name"><?php echo htmlspecialchars($channel['teamName']); ?></span>
+                                    </div>
+                                </div>
+                                <div class="channel-stats">
+                                    <span class="member-count">
+                                        <i class="fas fa-users"></i>
+                                        <?php echo $channel['memberCount']; ?> members
+                                    </span>
+                                    <span class="membership-type <?php echo strtolower($channel['membershipType']); ?>">
+                                        <?php echo ucfirst($channel['membershipType']); ?>
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <?php if (!empty($channel['description'])): ?>
+                            <div class="channel-description">
+                                <p><?php echo htmlspecialchars($channel['description']); ?></p>
+                            </div>
+                            <?php endif; ?>
+                            
+                            <div class="channel-members">
+                                <h5>Channel Members</h5>
+                                <div class="members-list" id="members-<?php echo htmlspecialchars($channel['id']); ?>">
+                                    <div class="loading-members">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        Loading members...
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="channel-actions">
+                                <button class="btn btn-sm btn-primary" onclick="loadChannelMembers('<?php echo htmlspecialchars($channel['teamId']); ?>', '<?php echo htmlspecialchars($channel['id']); ?>')">
+                                    <i class="fas fa-users"></i>
+                                    Load Members
+                                </button>
+                                <?php if (!empty($channel['webUrl'])): ?>
+                                <a href="<?php echo htmlspecialchars($channel['webUrl']); ?>" target="_blank" class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    Open in Teams
+                                </a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </section>
+
                 <!-- Summary Cards Grid -->
                 <section class="summary-cards-section">
                     <div class="section-header">
@@ -564,6 +659,298 @@ function getBadgeText($type) {
             statistics: <?php echo json_encode($statistics); ?>,
             currentPage: 'summaries.php'
         };
+        
+        // Function to load channel members
+        function loadChannelMembers(teamId, channelId) {
+            const membersContainer = document.getElementById(`members-${channelId}`);
+            
+            // Show loading state
+            membersContainer.innerHTML = '<div class="loading-members"><i class="fas fa-spinner fa-spin"></i> Loading members...</div>';
+            
+            // Fetch members from API
+            fetch(`api/get_channel_members.php?teamId=${encodeURIComponent(teamId)}&channelId=${encodeURIComponent(channelId)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.members) {
+                        let membersHtml = '<div class="members-grid">';
+                        
+                        data.members.forEach(member => {
+                            const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.displayName)}&background=6366f1&color=fff&size=32`;
+                            membersHtml += `
+                                <div class="member-item">
+                                    <img src="${avatar}" alt="${member.displayName}" class="member-avatar">
+                                    <div class="member-info">
+                                        <span class="member-name">${member.displayName}</span>
+                                        ${member.email ? `<span class="member-email">${member.email}</span>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        membersHtml += '</div>';
+                        membersContainer.innerHTML = membersHtml;
+                    } else {
+                        membersContainer.innerHTML = '<div class="no-members">No members data available</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading members:', error);
+                    membersContainer.innerHTML = '<div class="error-loading">Error loading members</div>';
+                });
+        }
     </script>
+    
+    <style>
+        /* Channels and Members Section Styles */
+        .channels-members-section {
+            margin-bottom: 2rem;
+        }
+        
+        .channels-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .channel-member-card {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .channel-member-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .channel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 1.5rem;
+            background: var(--surface-hover);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .channel-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .channel-info i {
+            color: var(--primary-color);
+            font-size: 1.25rem;
+            margin-top: 0.25rem;
+        }
+        
+        .channel-details h4 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1.125rem;
+            color: var(--text-primary);
+        }
+        
+        .team-name {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .channel-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+        
+        .member-count {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .membership-type {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .membership-type.standard {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+        
+        .membership-type.private {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+        
+        .channel-description {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .channel-description p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        .channel-members {
+            padding: 1.5rem;
+        }
+        
+        .channel-members h5 {
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+        
+        .members-grid {
+            display: grid;
+            gap: 0.75rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            background: var(--surface-hover);
+        }
+        
+        .member-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+        
+        .member-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.125rem;
+        }
+        
+        .member-name {
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+        }
+        
+        .member-email {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .loading-members, .no-members, .error-loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        .loading-members i {
+            margin-right: 0.5rem;
+        }
+        
+        .channel-actions {
+            display: flex;
+            gap: 0.75rem;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            background: var(--surface-hover);
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8125rem;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+        
+        .btn-secondary {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+        
+        .no-data-message {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+        
+        .no-data-message i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--warning-color);
+        }
+        
+        .no-data-message h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--text-primary);
+        }
+        
+        .refresh-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary-color);
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 768px) {
+            .channels-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .channel-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .channel-stats {
+                align-items: flex-start;
+            }
+            
+            .channel-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
 </body>
 </html>

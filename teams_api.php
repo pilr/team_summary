@@ -71,19 +71,12 @@ class TeamsAPIHelper {
     }
     
     /**
-     * Get all teams the app has access to
+     * Get all teams the app has access to (real-time, no cache)
      */
     public function getTeams() {
-        $cacheFile = $this->cacheDir . '/teams.json';
-        
-        // Check cache
-        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < TEAMS_CACHE_DURATION) {
-            return json_decode(file_get_contents($cacheFile), true);
-        }
-        
         $token = $this->getAccessToken();
         if (!$token) {
-            return $this->getFallbackTeams();
+            return [];
         }
         
         $ch = curl_init(TEAMS_GRAPH_URL . '/teams');
@@ -100,29 +93,21 @@ class TeamsAPIHelper {
         if ($httpCode === 200) {
             $data = json_decode($response, true);
             if ($data && isset($data['value'])) {
-                file_put_contents($cacheFile, json_encode($data['value']));
                 return $data['value'];
             }
         }
         
         error_log("Failed to get Teams. HTTP Code: $httpCode, Response: $response");
-        return $this->getFallbackTeams();
+        return [];
     }
     
     /**
-     * Get channels for a specific team
+     * Get channels for a specific team (real-time, no cache)
      */
     public function getTeamChannels($teamId) {
-        $cacheFile = $this->cacheDir . "/channels_{$teamId}.json";
-        
-        // Check cache
-        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < TEAMS_CACHE_DURATION) {
-            return json_decode(file_get_contents($cacheFile), true);
-        }
-        
         $token = $this->getAccessToken();
         if (!$token) {
-            return $this->getFallbackChannels();
+            return [];
         }
         
         $ch = curl_init(TEAMS_GRAPH_URL . "/teams/{$teamId}/channels");
@@ -139,47 +124,81 @@ class TeamsAPIHelper {
         if ($httpCode === 200) {
             $data = json_decode($response, true);
             if ($data && isset($data['value'])) {
-                file_put_contents($cacheFile, json_encode($data['value']));
                 return $data['value'];
             }
         }
         
         error_log("Failed to get Team channels. HTTP Code: $httpCode, Response: $response");
-        return $this->getFallbackChannels();
+        return [];
     }
     
     /**
-     * Get all channels across all teams
+     * Get all channels across all teams (no cache, real-time)
      */
-    public function getAllChannels() {
-        $cacheFile = $this->cacheDir . '/all_channels.json';
-        
-        // Check cache
-        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < TEAMS_CACHE_DURATION) {
-            return json_decode(file_get_contents($cacheFile), true);
-        }
-        
+    public function getAllChannels($useCache = false) {
         $teams = $this->getTeams();
         $allChannels = [];
         
         foreach ($teams as $team) {
             $channels = $this->getTeamChannels($team['id']);
             foreach ($channels as $channel) {
+                // Get member count for this channel
+                $memberCount = $this->getChannelMemberCount($team['id'], $channel['id']);
+                
                 $allChannels[] = [
                     'id' => $channel['id'],
                     'displayName' => $channel['displayName'],
                     'description' => $channel['description'] ?? '',
                     'teamId' => $team['id'],
-                    'teamName' => $team['displayName']
+                    'teamName' => $team['displayName'],
+                    'memberCount' => $memberCount,
+                    'webUrl' => $channel['webUrl'] ?? '',
+                    'membershipType' => $channel['membershipType'] ?? 'standard'
                 ];
             }
         }
         
-        if (!empty($allChannels)) {
-            file_put_contents($cacheFile, json_encode($allChannels));
+        return !empty($allChannels) ? $allChannels : [];
+    }
+    
+    /**
+     * Get channel members
+     */
+    public function getChannelMembers($teamId, $channelId) {
+        $token = $this->getAccessToken();
+        if (!$token) {
+            return [];
         }
         
-        return !empty($allChannels) ? $allChannels : $this->getFallbackChannels();
+        // For most channels, members are the team members
+        $ch = curl_init(TEAMS_GRAPH_URL . "/teams/{$teamId}/members");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $token,
+            'Content-Type: application/json'
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 200) {
+            $data = json_decode($response, true);
+            if ($data && isset($data['value'])) {
+                return $data['value'];
+            }
+        }
+        
+        error_log("Failed to get channel members. HTTP Code: $httpCode, Response: $response");
+        return [];
+    }
+    
+    /**
+     * Get channel member count
+     */
+    public function getChannelMemberCount($teamId, $channelId) {
+        $members = $this->getChannelMembers($teamId, $channelId);
+        return count($members);
     }
     
     /**
