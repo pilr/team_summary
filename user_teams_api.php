@@ -172,7 +172,46 @@ class UserTeamsAPIHelper {
      */
     public function getUserTeams() {
         $result = $this->makeGraphAPIRequest('/me/joinedTeams');
+        
+        // If primary endpoint fails, try alternative approach for external users
+        if (!$result) {
+            error_log("UserTeamsAPI: Primary /me/joinedTeams failed, trying alternative approach");
+            return $this->getUserTeamsAlternative();
+        }
+        
         return $result ? ($result['value'] ?? []) : [];
+    }
+    
+    /**
+     * Alternative method to get teams using /me/memberOf endpoint
+     * This sometimes works better for external users
+     */
+    private function getUserTeamsAlternative() {
+        $result = $this->makeGraphAPIRequest('/me/memberOf');
+        if (!$result) {
+            return [];
+        }
+        
+        $groups = $result['value'] ?? [];
+        $teams = [];
+        
+        foreach ($groups as $group) {
+            // Check if this group is actually a Team
+            if (isset($group['resourceProvisioningOptions']) && 
+                in_array('Team', $group['resourceProvisioningOptions'] ?? [])) {
+                
+                // Convert group format to team format for consistency
+                $teams[] = [
+                    'id' => $group['id'],
+                    'displayName' => $group['displayName'],
+                    'description' => $group['description'] ?? '',
+                    'visibility' => $group['visibility'] ?? 'private'
+                ];
+            }
+        }
+        
+        error_log("UserTeamsAPI: Alternative method found " . count($teams) . " teams from " . count($groups) . " groups");
+        return $teams;
     }
     
     /**

@@ -323,10 +323,10 @@ function testTeamsAPIPermission($access_token) {
                 </ol>
                 <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
                     <p style="margin: 0; color: #dc2626; font-weight: 500;">
-                        <i class="fas fa-info-circle"></i> <strong>For Developers:</strong>
+                        <i class="fas fa-info-circle"></i> <strong>For External Users:</strong>
                     </p>
                     <p style="margin: 0.5rem 0 0 0; color: #7f1d1d;">
-                        The Azure app registration needs admin consent for delegated permissions. This cannot be fixed by reconnecting - it requires Azure admin action.
+                        External users often face additional restrictions when accessing Teams API, even with proper permissions. This requires Azure admin configuration of cross-tenant access policies.
                     </p>
                 </div>
             </div>
