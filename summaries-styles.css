@@ -8,8 +8,6 @@
     display: flex !important;
     flex-direction: column !important;
     gap: 48px !important;
-    background: rgba(255, 0, 0, 0.1) !important; /* Temporary visual indicator */
-    border: 2px dashed red !important; /* Temporary visual indicator */
 }
 
 /* Fallback with even higher specificity */
@@ -20,8 +18,6 @@ main.main-content .summaries-content {
     display: flex !important;
     flex-direction: column !important;
     gap: 48px !important;
-    background: rgba(255, 0, 0, 0.1) !important; /* Temporary visual indicator */
-    border: 2px dashed red !important; /* Temporary visual indicator */
 }
 
 /* Summary Controls */
