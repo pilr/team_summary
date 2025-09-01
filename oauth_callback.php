@@ -78,6 +78,10 @@ try {
 
     // Save token to database
     global $db;
+    
+    // Log token details for debugging (without sensitive data)
+    error_log("OAuth Callback - User ID: $user_id, Token Type: " . ($token_response['token_type'] ?? 'Bearer') . ", Expires: " . $expires_at->format('Y-m-d H:i:s'));
+    
     $token_saved = $db->saveOAuthToken(
         $user_id,
         'microsoft',
@@ -89,8 +93,11 @@ try {
     );
 
     if (!$token_saved) {
+        error_log("Failed to save OAuth token to database for user $user_id");
         throw new Exception("Failed to save token to database");
     }
+    
+    error_log("OAuth token saved successfully for user $user_id");
 
     // Test the token by making a Graph API call
     $test_success = testGraphAPIAccess($token_response['access_token']);

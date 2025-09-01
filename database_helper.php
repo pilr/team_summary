@@ -9,6 +9,13 @@ class DatabaseHelper {
         $this->pdo = $this->getDatabaseConnection();
     }
     
+    /**
+     * Get PDO connection for direct access
+     */
+    public function getPDO() {
+        return $this->pdo;
+    }
+    
     private function getDatabaseConnection() {
         try {
             $pdo = new PDO(
@@ -34,6 +41,13 @@ class DatabaseHelper {
     
     public function saveOAuthToken($user_id, $provider, $access_token, $refresh_token = null, $token_type = 'Bearer', $expires_at, $scope = '') {
         try {
+            // First check if oauth_tokens table exists
+            $tableCheck = $this->pdo->query("SHOW TABLES LIKE 'oauth_tokens'");
+            if ($tableCheck->rowCount() == 0) {
+                error_log("OAuth tokens table does not exist. Creating it...");
+                $this->createOAuthTable();
+            }
+            
             $stmt = $this->pdo->prepare("
                 INSERT INTO oauth_tokens (user_id, provider, access_token, refresh_token, token_type, expires_at, scope)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -46,7 +60,7 @@ class DatabaseHelper {
                     updated_at = CURRENT_TIMESTAMP
             ");
             
-            return $stmt->execute([
+            $result = $stmt->execute([
                 $user_id,
                 $provider,
                 $access_token,
@@ -55,10 +69,45 @@ class DatabaseHelper {
                 $expires_at,
                 $scope
             ]);
+            
+            if ($result) {
+                error_log("OAuth token saved successfully for user $user_id");
+            } else {
+                error_log("Failed to execute OAuth token save for user $user_id");
+            }
+            
+            return $result;
         } catch (PDOException $e) {
             error_log("Save OAuth token failed: " . $e->getMessage());
+            error_log("SQL State: " . $e->getCode());
             return false;
         }
+    }
+    
+    /**
+     * Create oauth_tokens table if it doesn't exist
+     */
+    private function createOAuthTable() {
+        $sql = "
+        CREATE TABLE IF NOT EXISTS oauth_tokens (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            provider VARCHAR(50) NOT NULL DEFAULT 'microsoft',
+            access_token TEXT NOT NULL,
+            refresh_token TEXT,
+            token_type VARCHAR(20) DEFAULT 'Bearer',
+            expires_at DATETIME NOT NULL,
+            scope TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            
+            UNIQUE KEY unique_user_provider (user_id, provider),
+            INDEX idx_user_provider (user_id, provider),
+            INDEX idx_expires_at (expires_at)
+        )";
+        
+        $this->pdo->exec($sql);
+        error_log("OAuth tokens table created");
     }
     
     public function getOAuthToken($user_id, $provider) {

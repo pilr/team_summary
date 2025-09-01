@@ -23,29 +23,37 @@ class UserTeamsAPIHelper {
             return $this->access_token;
         }
         
+        error_log("UserTeamsAPI: Getting token for user " . $this->user_id);
         $token_info = $this->db->getOAuthToken($this->user_id, 'microsoft');
         if (!$token_info) {
+            error_log("UserTeamsAPI: No token found for user " . $this->user_id);
             return false;
         }
+        
+        error_log("UserTeamsAPI: Token found, expires at: " . $token_info['expires_at']);
         
         // Check if token is expired
         $expires_at = new DateTime($token_info['expires_at']);
         $now = new DateTime();
         
         if ($now >= $expires_at) {
+            error_log("UserTeamsAPI: Token expired, attempting refresh");
             // Try to refresh token
             if (!empty($token_info['refresh_token'])) {
                 $refreshed = $this->refreshAccessToken($token_info['refresh_token']);
                 if ($refreshed) {
                     $token_info = $this->db->getOAuthToken($this->user_id, 'microsoft');
                     $this->access_token = $token_info['access_token'];
+                    error_log("UserTeamsAPI: Token refreshed successfully");
                     return $this->access_token;
                 }
             }
+            error_log("UserTeamsAPI: Token refresh failed");
             return false;
         }
         
         $this->access_token = $token_info['access_token'];
+        error_log("UserTeamsAPI: Using valid token");
         return $this->access_token;
     }
     
@@ -182,8 +190,12 @@ class UserTeamsAPIHelper {
         $teams = $this->getUserTeams();
         $all_channels = [];
         
+        error_log("UserTeamsAPI: Found " . count($teams) . " teams for user " . $this->user_id);
+        
         foreach ($teams as $team) {
             $channels = $this->getTeamChannels($team['id']);
+            error_log("UserTeamsAPI: Team " . $team['displayName'] . " has " . count($channels) . " channels");
+            
             foreach ($channels as $channel) {
                 $all_channels[] = [
                     'id' => $channel['id'],
@@ -191,14 +203,23 @@ class UserTeamsAPIHelper {
                     'description' => $channel['description'] ?? '',
                     'teamId' => $team['id'],
                     'teamName' => $team['displayName'],
-                    'memberCount' => 0, // We'll need separate calls to get member counts
+                    'memberCount' => $this->getChannelMemberCount($team['id'], $channel['id']),
                     'webUrl' => $channel['webUrl'] ?? '',
                     'membershipType' => $channel['membershipType'] ?? 'standard'
                 ];
             }
         }
         
+        error_log("UserTeamsAPI: Total channels found: " . count($all_channels));
         return $all_channels;
+    }
+    
+    /**
+     * Get channel member count
+     */
+    public function getChannelMemberCount($team_id, $channel_id) {
+        $members = $this->getChannelMembers($team_id, $channel_id);
+        return count($members);
     }
     
     /**
