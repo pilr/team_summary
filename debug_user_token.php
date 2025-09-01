@@ -31,11 +31,14 @@ try {
         echo "  - Created At: " . $token_info['created_at'] . "\n";
         echo "  - Has Refresh Token: " . (!empty($token_info['refresh_token']) ? 'Yes' : 'No') . "\n";
         
-        // Check if expired
+        // Check if expired with detailed timezone info
         $expires_at = new DateTime($token_info['expires_at']);
         $now = new DateTime();
         $is_expired = $now >= $expires_at;
         echo "  - Is Expired: " . ($is_expired ? 'Yes' : 'No') . "\n";
+        echo "  - Current Time: " . $now->format('Y-m-d H:i:s T') . "\n";
+        echo "  - Expires Time: " . $expires_at->format('Y-m-d H:i:s T') . "\n";
+        echo "  - Server Timezone: " . date_default_timezone_get() . "\n";
         
         if ($is_expired) {
             $time_diff = $now->diff($expires_at);
@@ -85,6 +88,22 @@ try {
 echo "\n=== Database Token Validation ===\n";
 $isValid = $db->isTokenValid($user_id, 'microsoft');
 echo "isTokenValid(): " . ($isValid ? 'true' : 'false') . "\n";
+
+echo "\n=== Direct Database Query ===\n";
+try {
+    $pdo = $db->getPDO();
+    $stmt = $pdo->prepare("SELECT expires_at, NOW() as db_now, expires_at > NOW() as is_valid FROM oauth_tokens WHERE user_id = ? AND provider = ?");
+    $stmt->execute([$user_id, 'microsoft']);
+    $result = $stmt->fetch();
+    
+    if ($result) {
+        echo "Database expires_at: " . $result['expires_at'] . "\n";
+        echo "Database NOW(): " . $result['db_now'] . "\n";
+        echo "Database comparison (expires_at > NOW()): " . ($result['is_valid'] ? 'true' : 'false') . "\n";
+    }
+} catch (Exception $e) {
+    echo "Database query error: " . $e->getMessage() . "\n";
+}
 
 echo "\nDone.\n";
 ?>

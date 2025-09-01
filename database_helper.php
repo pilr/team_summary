@@ -163,12 +163,29 @@ class DatabaseHelper {
     public function isTokenValid($user_id, $provider) {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT expires_at 
+                SELECT expires_at, NOW() as current_time
                 FROM oauth_tokens 
-                WHERE user_id = ? AND provider = ? AND expires_at > NOW()
+                WHERE user_id = ? AND provider = ?
             ");
             $stmt->execute([$user_id, $provider]);
-            return $stmt->fetch() !== false;
+            $result = $stmt->fetch();
+            
+            if (!$result) {
+                error_log("isTokenValid: No token found for user $user_id, provider $provider");
+                return false;
+            }
+            
+            // Log for debugging
+            error_log("isTokenValid Debug - User: $user_id, Expires: {$result['expires_at']}, Current: {$result['current_time']}");
+            
+            // Compare timestamps using PHP instead of MySQL NOW() to avoid timezone issues
+            $expires_at = new DateTime($result['expires_at']);
+            $now = new DateTime();
+            
+            $is_valid = $now < $expires_at;
+            error_log("isTokenValid Result: " . ($is_valid ? 'true' : 'false') . " (PHP DateTime comparison)");
+            
+            return $is_valid;
         } catch (PDOException $e) {
             error_log("Check token validity failed: " . $e->getMessage());
             return false;
