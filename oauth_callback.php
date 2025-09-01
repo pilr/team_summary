@@ -10,7 +10,11 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 
 $user_id = $_SESSION['user_id'] ?? null;
+$user_name = $_SESSION['user_name'] ?? 'Unknown';
+error_log("OAuth Callback: Processing for dashboard user_id=$user_id, user_name=$user_name");
+
 if (!$user_id) {
+    error_log("OAuth Callback: No user_id in session, redirecting to login");
     header('Location: login.php?error=invalid_session');
     exit();
 }

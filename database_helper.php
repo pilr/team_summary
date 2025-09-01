@@ -112,13 +112,22 @@ class DatabaseHelper {
     
     public function getOAuthToken($user_id, $provider) {
         try {
+            error_log("DatabaseHelper: getOAuthToken called for user_id=$user_id, provider=$provider");
             $stmt = $this->pdo->prepare("
                 SELECT access_token, refresh_token, token_type, expires_at, scope, created_at, updated_at
                 FROM oauth_tokens 
                 WHERE user_id = ? AND provider = ?
             ");
             $stmt->execute([$user_id, $provider]);
-            return $stmt->fetch();
+            $result = $stmt->fetch();
+            
+            if ($result) {
+                error_log("DatabaseHelper: Token found for user $user_id, expires: " . $result['expires_at']);
+            } else {
+                error_log("DatabaseHelper: No token found for user $user_id");
+            }
+            
+            return $result;
         } catch (PDOException $e) {
             error_log("Get OAuth token failed: " . $e->getMessage());
             return null;
