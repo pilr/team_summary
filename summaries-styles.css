@@ -4,10 +4,10 @@
 .summaries-content {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 32px 24px;
+    padding: 48px 40px 64px;
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: 48px;
 }
 
 /* Summary Controls */
@@ -145,7 +145,7 @@
 .summary-stats-section + .timeline-section,
 .timeline-section + .channels-members-section,
 .channels-members-section + .summary-cards-section {
-    margin-top: 48px;
+    margin-top: 64px;
 }
 
 /* Summary Statistics */
@@ -162,12 +162,12 @@
 .stat-card {
     background: white;
     border-radius: 16px;
-    padding: 24px;
+    padding: 32px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     border: 1px solid #f1f5f9;
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 24px;
     transition: all 0.2s ease;
 }
 
@@ -266,13 +266,13 @@
 }
 
 .timeline-card .card-header {
-    padding: 24px 32px 20px;
+    padding: 32px 40px 24px;
     background: #fafbfc;
     border-bottom: 1px solid #f1f5f9;
 }
 
 .timeline-card .card-content {
-    padding: 32px;
+    padding: 40px;
 }
 
 .timeline-card .card-header h3 {
@@ -503,7 +503,7 @@
 }
 
 .channels-members-section .section-header {
-    margin-bottom: 32px;
+    margin-bottom: 40px;
 }
 
 .channels-grid {
@@ -529,14 +529,14 @@
 }
 
 .channel-header {
-    padding: 24px 28px;
+    padding: 32px 36px;
     background: #fafbfc;
     border-bottom: 1px solid #f1f5f9;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 20px;
 }
 
 .channel-info {
@@ -607,7 +607,7 @@
 }
 
 .channel-description {
-    padding: 20px 28px;
+    padding: 24px 36px;
     border-bottom: 1px solid #f1f5f9;
 }
 
@@ -619,7 +619,7 @@
 }
 
 .channel-members {
-    padding: 24px 28px;
+    padding: 32px 36px;
 }
 
 .channel-members h5 {
@@ -696,11 +696,11 @@
 }
 
 .channel-actions {
-    padding: 20px 28px;
+    padding: 24px 36px;
     background: #fafbfc;
     border-top: 1px solid #f1f5f9;
     display: flex;
-    gap: 12px;
+    gap: 16px;
 }
 
 .btn {
@@ -1021,8 +1021,8 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
     .summaries-content {
-        padding: 24px 20px;
-        gap: 24px;
+        padding: 32px 24px 48px;
+        gap: 32px;
     }
     
     .summary-controls {
@@ -1067,14 +1067,27 @@
     .summary-stats-section + .timeline-section,
     .timeline-section + .channels-members-section,
     .channels-members-section + .summary-cards-section {
-        margin-top: 32px;
+        margin-top: 40px;
+    }
+    
+    .stat-card {
+        padding: 24px;
+        gap: 20px;
+    }
+    
+    .timeline-card .card-header {
+        padding: 24px 28px 20px;
+    }
+    
+    .timeline-card .card-content {
+        padding: 28px;
     }
 }
 
 @media (max-width: 768px) {
     .summaries-content {
-        padding: 16px 16px;
-        gap: 20px;
+        padding: 24px 20px 40px;
+        gap: 24px;
     }
     
     .date-range-picker {
@@ -1130,10 +1143,10 @@
     }
     
     .channel-header {
-        padding: 20px;
+        padding: 24px;
         flex-direction: column;
         align-items: flex-start;
-        gap: 12px;
+        gap: 16px;
     }
     
     .channel-stats {
@@ -1142,15 +1155,15 @@
     }
     
     .channel-description {
-        padding: 16px 20px;
+        padding: 20px 24px;
     }
     
     .channel-members {
-        padding: 20px;
+        padding: 24px;
     }
     
     .channel-actions {
-        padding: 16px 20px;
+        padding: 20px 24px;
         flex-direction: column;
     }
     
