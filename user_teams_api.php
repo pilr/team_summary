@@ -1,0 +1,258 @@
+<?php
+require_once 'teams_config.php';
+require_once 'database_helper.php';
+
+/**
+ * User-specific Teams API Helper that uses OAuth tokens stored in database
+ */
+class UserTeamsAPIHelper {
+    private $user_id;
+    private $db;
+    private $access_token;
+    
+    public function __construct($user_id) {
+        $this->user_id = $user_id;
+        $this->db = new DatabaseHelper();
+    }
+    
+    /**
+     * Get valid access token for the user
+     */
+    private function getValidAccessToken() {
+        if ($this->access_token && $this->isCurrentTokenValid()) {
+            return $this->access_token;
+        }
+        
+        $token_info = $this->db->getOAuthToken($this->user_id, 'microsoft');
+        if (!$token_info) {
+            return false;
+        }
+        
+        // Check if token is expired
+        $expires_at = new DateTime($token_info['expires_at']);
+        $now = new DateTime();
+        
+        if ($now >= $expires_at) {
+            // Try to refresh token
+            if (!empty($token_info['refresh_token'])) {
+                $refreshed = $this->refreshAccessToken($token_info['refresh_token']);
+                if ($refreshed) {
+                    $token_info = $this->db->getOAuthToken($this->user_id, 'microsoft');
+                    $this->access_token = $token_info['access_token'];
+                    return $this->access_token;
+                }
+            }
+            return false;
+        }
+        
+        $this->access_token = $token_info['access_token'];
+        return $this->access_token;
+    }
+    
+    /**
+     * Check if current cached token is still valid
+     */
+    private function isCurrentTokenValid() {
+        if (!$this->access_token) {
+            return false;
+        }
+        
+        return $this->db->isTokenValid($this->user_id, 'microsoft');
+    }
+    
+    /**
+     * Refresh access token using refresh token
+     */
+    private function refreshAccessToken($refresh_token) {
+        try {
+            $token_data = [
+                'client_id' => TEAMS_CLIENT_ID,
+                'client_secret' => TEAMS_CLIENT_SECRET,
+                'refresh_token' => $refresh_token,
+                'grant_type' => 'refresh_token'
+            ];
+
+            $ch = curl_init(TEAMS_TOKEN_URL);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($token_data));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/x-www-form-urlencoded'
+            ]);
+
+            $response = curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curl_error = curl_error($ch);
+            curl_close($ch);
+
+            if ($curl_error || $http_code !== 200) {
+                error_log("Token refresh failed: HTTP $http_code, Error: $curl_error");
+                return false;
+            }
+
+            $token_response = json_decode($response, true);
+            if (!$token_response || !isset($token_response['access_token'])) {
+                error_log("Invalid refresh token response");
+                return false;
+            }
+
+            // Update token in database
+            $expires_in = $token_response['expires_in'] ?? 3600;
+            $expires_at = new DateTime();
+            $expires_at->add(new DateInterval("PT{$expires_in}S"));
+
+            return $this->db->updateOAuthToken(
+                $this->user_id,
+                'microsoft',
+                $token_response['access_token'],
+                $token_response['refresh_token'] ?? $refresh_token,
+                $expires_at->format('Y-m-d H:i:s')
+            );
+
+        } catch (Exception $e) {
+            error_log("Token refresh exception: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Make authenticated Graph API request
+     */
+    private function makeGraphAPIRequest($endpoint, $method = 'GET', $data = null) {
+        $token = $this->getValidAccessToken();
+        if (!$token) {
+            return false;
+        }
+        
+        $url = TEAMS_GRAPH_URL . $endpoint;
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $token,
+            'Content-Type: application/json'
+        ]);
+        
+        if ($method === 'POST' && $data) {
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        }
+        
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curl_error) {
+            error_log("Graph API request failed: $curl_error");
+            return false;
+        }
+        
+        if ($http_code !== 200) {
+            error_log("Graph API request failed: HTTP $http_code, Response: $response");
+            return false;
+        }
+        
+        $data = json_decode($response, true);
+        return $data;
+    }
+    
+    /**
+     * Get user's joined teams
+     */
+    public function getUserTeams() {
+        $result = $this->makeGraphAPIRequest('/me/joinedTeams');
+        return $result ? ($result['value'] ?? []) : [];
+    }
+    
+    /**
+     * Get channels for a specific team
+     */
+    public function getTeamChannels($team_id) {
+        $result = $this->makeGraphAPIRequest("/teams/{$team_id}/channels");
+        return $result ? ($result['value'] ?? []) : [];
+    }
+    
+    /**
+     * Get all channels across user's teams
+     */
+    public function getAllChannels() {
+        $teams = $this->getUserTeams();
+        $all_channels = [];
+        
+        foreach ($teams as $team) {
+            $channels = $this->getTeamChannels($team['id']);
+            foreach ($channels as $channel) {
+                $all_channels[] = [
+                    'id' => $channel['id'],
+                    'displayName' => $channel['displayName'],
+                    'description' => $channel['description'] ?? '',
+                    'teamId' => $team['id'],
+                    'teamName' => $team['displayName'],
+                    'memberCount' => 0, // We'll need separate calls to get member counts
+                    'webUrl' => $channel['webUrl'] ?? '',
+                    'membershipType' => $channel['membershipType'] ?? 'standard'
+                ];
+            }
+        }
+        
+        return $all_channels;
+    }
+    
+    /**
+     * Get messages from a specific channel
+     */
+    public function getChannelMessages($team_id, $channel_id, $limit = 50) {
+        $result = $this->makeGraphAPIRequest("/teams/{$team_id}/channels/{$channel_id}/messages?\$top={$limit}");
+        return $result ? ($result['value'] ?? []) : [];
+    }
+    
+    /**
+     * Get channel members
+     */
+    public function getChannelMembers($team_id, $channel_id) {
+        // For most channels, members are the team members
+        $result = $this->makeGraphAPIRequest("/teams/{$team_id}/members");
+        return $result ? ($result['value'] ?? []) : [];
+    }
+    
+    /**
+     * Get user profile information
+     */
+    public function getUserProfile() {
+        return $this->makeGraphAPIRequest('/me');
+    }
+    
+    /**
+     * Test if the user has a valid connection
+     */
+    public function testConnection() {
+        $profile = $this->getUserProfile();
+        return $profile !== false;
+    }
+    
+    /**
+     * Check if user has connected their Microsoft account
+     */
+    public function isConnected() {
+        return $this->db->isTokenValid($this->user_id, 'microsoft');
+    }
+    
+    /**
+     * Get connection status with details
+     */
+    public function getConnectionStatus() {
+        if (!$this->isConnected()) {
+            return ['status' => 'disconnected', 'message' => 'Not connected to Microsoft'];
+        }
+        
+        if ($this->testConnection()) {
+            return ['status' => 'connected', 'message' => 'Connected and working'];
+        }
+        
+        return ['status' => 'error', 'message' => 'Connected but API calls failing'];
+    }
+}
+?>

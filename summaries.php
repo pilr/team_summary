@@ -21,8 +21,20 @@ if (!$user_id) {
     exit();
 }
 
-// Initialize Teams API
-$teamsAPI = new TeamsAPIHelper();
+// Initialize Teams API - check if user has connected their Microsoft account
+require_once 'user_teams_api.php';
+$userTeamsAPI = new UserTeamsAPIHelper($user_id);
+
+// Try user-specific API first, fallback to app-only API
+if ($userTeamsAPI->isConnected()) {
+    $teamsAPI = $userTeamsAPI;
+    $is_user_connected = true;
+} else {
+    // Fallback to app-only API (original behavior)
+    require_once 'teams_api.php';
+    $teamsAPI = new TeamsAPIHelper();
+    $is_user_connected = false;
+}
 
 // Handle date range and filters
 $date_range = $_GET['range'] ?? 'today';
@@ -554,7 +566,11 @@ function getBadgeText($type) {
                         <div class="no-data-message">
                             <i class="fas fa-exclamation-triangle"></i>
                             <h4>No Teams Data Available</h4>
-                            <p>Unable to connect to Microsoft Teams API. Please check your configuration.</p>
+                            <?php if (!$is_user_connected): ?>
+                            <p>Connect your Microsoft account in <a href="account.php" style="color: var(--primary-color);">Account Settings</a> to access your Teams data.</p>
+                            <?php else: ?>
+                            <p>Unable to load your Teams data. Please check your connection in <a href="account.php" style="color: var(--primary-color);">Account Settings</a>.</p>
+                            <?php endif; ?>
                         </div>
                         <?php else: ?>
                         <?php foreach ($channels as $channel): ?>

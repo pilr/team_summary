@@ -246,6 +246,51 @@ try {
                     </div>
                 </section>
 
+                <!-- Microsoft Teams Integration -->
+                <section class="account-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2><i class="fab fa-microsoft"></i> Microsoft Teams Integration</h2>
+                        </div>
+                        <div class="card-content">
+                            <div class="integration-status" id="teamsIntegrationStatus">
+                                <div class="status-indicator">
+                                    <i class="fas fa-circle status-icon" id="statusIcon"></i>
+                                    <span class="status-text" id="statusText">Checking connection...</span>
+                                </div>
+                                <p class="status-description" id="statusDescription">
+                                    Connect your Microsoft account to access your Teams data and get personalized summaries.
+                                </p>
+                            </div>
+                            
+                            <div class="integration-actions">
+                                <button id="connectTeamsBtn" class="btn btn-microsoft" onclick="connectToMicrosoft()">
+                                    <i class="fab fa-microsoft"></i>
+                                    <span>Connect to Microsoft Teams</span>
+                                </button>
+                                <button id="disconnectTeamsBtn" class="btn btn-danger" onclick="disconnectMicrosoft()" style="display: none;">
+                                    <i class="fas fa-unlink"></i>
+                                    <span>Disconnect Microsoft Account</span>
+                                </button>
+                                <button id="refreshTeamsBtn" class="btn btn-secondary" onclick="refreshConnection()" style="display: none;">
+                                    <i class="fas fa-sync"></i>
+                                    <span>Refresh Connection</span>
+                                </button>
+                            </div>
+                            
+                            <div class="integration-permissions" id="permissionsInfo" style="display: none;">
+                                <h4>Connected Permissions</h4>
+                                <ul class="permissions-list">
+                                    <li><i class="fas fa-check-circle"></i> Read your Teams</li>
+                                    <li><i class="fas fa-check-circle"></i> Read channel information</li>
+                                    <li><i class="fas fa-check-circle"></i> Read messages</li>
+                                    <li><i class="fas fa-check-circle"></i> Read user profile</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Security Section -->
                 <section class="account-section">
                     <div class="card">
@@ -383,6 +428,148 @@ try {
         function confirmDelete() {
             return confirm('Are you sure you want to delete your account? This action cannot be undone.');
         }
+
+        // Microsoft Teams Integration Functions
+        async function connectToMicrosoft() {
+            const state = Math.random().toString(36).substring(2, 15);
+            sessionStorage.setItem('oauth_state', state);
+            
+            const authUrl = new URL('https://login.microsoftonline.com/<?php echo TEAMS_TENANT_ID; ?>/oauth2/v2.0/authorize');
+            authUrl.searchParams.append('client_id', '<?php echo TEAMS_CLIENT_ID; ?>');
+            authUrl.searchParams.append('response_type', 'code');
+            authUrl.searchParams.append('redirect_uri', window.location.origin + '/oauth_callback.php');
+            authUrl.searchParams.append('scope', 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Read.All');
+            authUrl.searchParams.append('state', state);
+            authUrl.searchParams.append('prompt', 'select_account');
+            
+            window.location.href = authUrl.toString();
+        }
+
+        async function disconnectMicrosoft() {
+            if (!confirm('Are you sure you want to disconnect your Microsoft account?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('api/disconnect_microsoft.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    updateConnectionStatus('disconnected');
+                    showAlert('Microsoft account disconnected successfully.', 'success');
+                } else {
+                    showAlert('Failed to disconnect Microsoft account.', 'error');
+                }
+            } catch (error) {
+                console.error('Error disconnecting:', error);
+                showAlert('An error occurred while disconnecting.', 'error');
+            }
+        }
+
+        async function refreshConnection() {
+            updateConnectionStatus('checking');
+            
+            try {
+                const response = await fetch('api/refresh_teams_token.php', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    updateConnectionStatus('connected');
+                    showAlert('Connection refreshed successfully.', 'success');
+                } else {
+                    updateConnectionStatus('disconnected');
+                    showAlert('Failed to refresh connection. Please reconnect.', 'error');
+                }
+            } catch (error) {
+                console.error('Error refreshing:', error);
+                updateConnectionStatus('error');
+                showAlert('An error occurred while refreshing.', 'error');
+            }
+        }
+
+        function updateConnectionStatus(status) {
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            const statusDescription = document.getElementById('statusDescription');
+            const connectBtn = document.getElementById('connectTeamsBtn');
+            const disconnectBtn = document.getElementById('disconnectTeamsBtn');
+            const refreshBtn = document.getElementById('refreshTeamsBtn');
+            const permissionsInfo = document.getElementById('permissionsInfo');
+
+            switch (status) {
+                case 'connected':
+                    statusIcon.className = 'fas fa-circle status-icon connected';
+                    statusText.textContent = 'Connected';
+                    statusDescription.textContent = 'Your Microsoft Teams account is connected and ready to use.';
+                    connectBtn.style.display = 'none';
+                    disconnectBtn.style.display = 'inline-flex';
+                    refreshBtn.style.display = 'inline-flex';
+                    permissionsInfo.style.display = 'block';
+                    break;
+                case 'disconnected':
+                    statusIcon.className = 'fas fa-circle status-icon disconnected';
+                    statusText.textContent = 'Not Connected';
+                    statusDescription.textContent = 'Connect your Microsoft account to access your Teams data and get personalized summaries.';
+                    connectBtn.style.display = 'inline-flex';
+                    disconnectBtn.style.display = 'none';
+                    refreshBtn.style.display = 'none';
+                    permissionsInfo.style.display = 'none';
+                    break;
+                case 'error':
+                    statusIcon.className = 'fas fa-circle status-icon error';
+                    statusText.textContent = 'Connection Error';
+                    statusDescription.textContent = 'There was an error with your Microsoft Teams connection. Please try reconnecting.';
+                    connectBtn.style.display = 'inline-flex';
+                    disconnectBtn.style.display = 'none';
+                    refreshBtn.style.display = 'none';
+                    permissionsInfo.style.display = 'none';
+                    break;
+                case 'checking':
+                    statusIcon.className = 'fas fa-spinner fa-spin status-icon';
+                    statusText.textContent = 'Checking connection...';
+                    statusDescription.textContent = 'Please wait while we check your connection status.';
+                    connectBtn.style.display = 'none';
+                    disconnectBtn.style.display = 'none';
+                    refreshBtn.style.display = 'none';
+                    break;
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            const container = document.querySelector('.dashboard-content');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.style.opacity = '0';
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 5000);
+        }
+
+        // Check connection status on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const response = await fetch('api/check_teams_connection.php');
+                const result = await response.json();
+                updateConnectionStatus(result.status || 'disconnected');
+            } catch (error) {
+                console.error('Error checking connection:', error);
+                updateConnectionStatus('error');
+            }
+        });
 
         // Auto-hide alerts after 5 seconds
         document.addEventListener('DOMContentLoaded', function() {
@@ -632,6 +819,104 @@ try {
             background: rgba(239, 68, 68, 0.1);
             color: #991b1b;
             border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* Microsoft Teams Integration Styles */
+        .integration-status {
+            margin-bottom: 2rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .status-icon {
+            font-size: 0.875rem;
+        }
+
+        .status-icon.connected {
+            color: #16a34a;
+        }
+
+        .status-icon.disconnected {
+            color: #6b7280;
+        }
+
+        .status-icon.error {
+            color: #ef4444;
+        }
+
+        .status-text {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .status-description {
+            color: var(--text-secondary);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .integration-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-microsoft {
+            background: #0078d4;
+            color: white;
+        }
+
+        .btn-microsoft:hover {
+            background: #106ebe;
+        }
+
+        .btn-secondary {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .integration-permissions {
+            padding: 1rem;
+            background: var(--surface-hover);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .integration-permissions h4 {
+            margin: 0 0 1rem 0;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .permissions-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .permissions-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .permissions-list li i {
+            color: #16a34a;
         }
 
         @media (max-width: 768px) {

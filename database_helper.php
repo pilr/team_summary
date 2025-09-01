@@ -29,6 +29,104 @@ class DatabaseHelper {
     }
     
     // ==========================================
+    // OAUTH TOKEN MANAGEMENT FUNCTIONS
+    // ==========================================
+    
+    public function saveOAuthToken($user_id, $provider, $access_token, $refresh_token = null, $token_type = 'Bearer', $expires_at, $scope = '') {
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO oauth_tokens (user_id, provider, access_token, refresh_token, token_type, expires_at, scope)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    access_token = VALUES(access_token),
+                    refresh_token = VALUES(refresh_token),
+                    token_type = VALUES(token_type),
+                    expires_at = VALUES(expires_at),
+                    scope = VALUES(scope),
+                    updated_at = CURRENT_TIMESTAMP
+            ");
+            
+            return $stmt->execute([
+                $user_id,
+                $provider,
+                $access_token,
+                $refresh_token,
+                $token_type,
+                $expires_at,
+                $scope
+            ]);
+        } catch (PDOException $e) {
+            error_log("Save OAuth token failed: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function getOAuthToken($user_id, $provider) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT access_token, refresh_token, token_type, expires_at, scope, created_at, updated_at
+                FROM oauth_tokens 
+                WHERE user_id = ? AND provider = ?
+            ");
+            $stmt->execute([$user_id, $provider]);
+            return $stmt->fetch();
+        } catch (PDOException $e) {
+            error_log("Get OAuth token failed: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    public function updateOAuthToken($user_id, $provider, $access_token, $refresh_token, $expires_at) {
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE oauth_tokens 
+                SET access_token = ?, refresh_token = ?, expires_at = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ? AND provider = ?
+            ");
+            
+            return $stmt->execute([
+                $access_token,
+                $refresh_token,
+                $expires_at,
+                $user_id,
+                $provider
+            ]);
+        } catch (PDOException $e) {
+            error_log("Update OAuth token failed: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function deleteOAuthToken($user_id, $provider) {
+        try {
+            $stmt = $this->pdo->prepare("
+                DELETE FROM oauth_tokens 
+                WHERE user_id = ? AND provider = ?
+            ");
+            
+            return $stmt->execute([$user_id, $provider]);
+        } catch (PDOException $e) {
+            error_log("Delete OAuth token failed: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function isTokenValid($user_id, $provider) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT expires_at 
+                FROM oauth_tokens 
+                WHERE user_id = ? AND provider = ? AND expires_at > NOW()
+            ");
+            $stmt->execute([$user_id, $provider]);
+            return $stmt->fetch() !== false;
+        } catch (PDOException $e) {
+            error_log("Check token validity failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // ==========================================
     // USER MANAGEMENT FUNCTIONS
     // ==========================================
     
