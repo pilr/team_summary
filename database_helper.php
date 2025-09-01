@@ -193,9 +193,12 @@ class DatabaseHelper {
             
             // Log for debugging
             error_log("isTokenValid Debug - User: $user_id, Expires: {$result['expires_at']}, Current: {$result['current_time']}, DB Valid: " . ($result['is_valid'] ? 'true' : 'false'));
+            error_log("isTokenValid Debug - Raw is_valid value: " . var_export($result['is_valid'], true) . ", Type: " . gettype($result['is_valid']));
             
             // Use the database comparison result since it handles timezones correctly
-            return (bool)$result['is_valid'];
+            $bool_result = (bool)$result['is_valid'];
+            error_log("isTokenValid Debug - Final result: " . ($bool_result ? 'true' : 'false'));
+            return $bool_result;
         } catch (PDOException $e) {
             error_log("Check token validity failed: " . $e->getMessage());
             return false;
