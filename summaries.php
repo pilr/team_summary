@@ -365,7 +365,24 @@ function getBadgeText($type) {
     <title>Summaries - Teams Activity Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
-    <link href="summaries-styles.css" rel="stylesheet">
+    <link href="./summaries-styles.css" rel="stylesheet">
+    <link href="summaries-styles.css?v=<?php echo time(); ?>" rel="stylesheet">
+    <link href="test-styles.css" rel="stylesheet">
+    
+    <style>
+    /* Emergency inline styles to ensure padding is applied */
+    .main-content .summaries-content,
+    main.main-content .summaries-content {
+        max-width: 1400px !important;
+        margin: 0 auto !important;
+        padding: 48px 40px 64px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 48px !important;
+        background: rgba(255, 0, 0, 0.1) !important;
+        border: 2px dashed red !important;
+    }
+    </style>
 </head>
 <body>
     <div class="app-container">

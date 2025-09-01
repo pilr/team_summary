@@ -1,0 +1,10 @@
+/* Test CSS file to verify loading */
+body {
+    border: 5px solid blue !important;
+}
+
+.summaries-content {
+    background: yellow !important;
+    padding: 50px !important;
+    border: 3px solid green !important;
+}
