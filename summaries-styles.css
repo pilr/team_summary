@@ -1,13 +1,27 @@
 /* Summaries Page Specific Styles */
 
 /* Main content container layout improvements */
-.summaries-content {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 48px 40px 64px;
-    display: flex;
-    flex-direction: column;
-    gap: 48px;
+.main-content .summaries-content {
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+    padding: 48px 40px 64px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 48px !important;
+    background: rgba(255, 0, 0, 0.1) !important; /* Temporary visual indicator */
+    border: 2px dashed red !important; /* Temporary visual indicator */
+}
+
+/* Fallback with even higher specificity */
+main.main-content .summaries-content {
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+    padding: 48px 40px 64px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 48px !important;
+    background: rgba(255, 0, 0, 0.1) !important; /* Temporary visual indicator */
+    border: 2px dashed red !important; /* Temporary visual indicator */
 }
 
 /* Summary Controls */
