@@ -178,7 +178,7 @@ class DatabaseHelper {
         try {
             // Use database comparison which is already working correctly
             $stmt = $this->pdo->prepare("
-                SELECT expires_at, NOW() as current_time, 
+                SELECT expires_at, NOW() as db_now, 
                        (expires_at > NOW()) as is_valid
                 FROM oauth_tokens 
                 WHERE user_id = ? AND provider = ?
@@ -192,7 +192,7 @@ class DatabaseHelper {
             }
             
             // Log for debugging
-            error_log("isTokenValid Debug - User: $user_id, Expires: {$result['expires_at']}, Current: {$result['current_time']}, DB Valid: " . ($result['is_valid'] ? 'true' : 'false'));
+            error_log("isTokenValid Debug - User: $user_id, Expires: {$result['expires_at']}, Current: {$result['db_now']}, DB Valid: " . ($result['is_valid'] ? 'true' : 'false'));
             error_log("isTokenValid Debug - Raw is_valid value: " . var_export($result['is_valid'], true) . ", Type: " . gettype($result['is_valid']));
             
             // Use the database comparison result since it handles timezones correctly

@@ -17,7 +17,7 @@ try {
     
     // Get the exact query that isTokenValid uses
     $stmt = $pdo->prepare("
-        SELECT expires_at, NOW() as current_time, 
+        SELECT expires_at, NOW() as db_now, 
                (expires_at > NOW()) as is_valid
         FROM oauth_tokens 
         WHERE user_id = ? AND provider = ?
@@ -32,7 +32,7 @@ try {
     
     echo "Database Query Results:\n";
     echo "  - expires_at: " . $result['expires_at'] . "\n";
-    echo "  - NOW(): " . $result['current_time'] . "\n";
+    echo "  - NOW(): " . $result['db_now'] . "\n";
     echo "  - is_valid (expires_at > NOW()): " . ($result['is_valid'] ? 'true' : 'false') . "\n";
     echo "  - is_valid raw value: " . var_export($result['is_valid'], true) . "\n";
     
@@ -54,7 +54,7 @@ try {
     // Manual time comparison
     echo "\nManual time comparison:\n";
     $expires = new DateTime($result['expires_at']);
-    $now = new DateTime($result['current_time']);
+    $now = new DateTime($result['db_now']);
     $manual_valid = $now < $expires;
     echo "  - Manual PHP comparison: " . ($manual_valid ? 'true' : 'false') . "\n";
     echo "  - Expires: " . $expires->format('Y-m-d H:i:s T') . "\n";
