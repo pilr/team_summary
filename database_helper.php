@@ -167,8 +167,10 @@ class DatabaseHelper {
     
     public function isTokenValid($user_id, $provider) {
         try {
+            // Use database comparison which is already working correctly
             $stmt = $this->pdo->prepare("
-                SELECT expires_at, NOW() as current_time
+                SELECT expires_at, NOW() as current_time, 
+                       (expires_at > NOW()) as is_valid
                 FROM oauth_tokens 
                 WHERE user_id = ? AND provider = ?
             ");
@@ -181,26 +183,10 @@ class DatabaseHelper {
             }
             
             // Log for debugging
-            error_log("isTokenValid Debug - User: $user_id, Expires: {$result['expires_at']}, Current: {$result['current_time']}");
+            error_log("isTokenValid Debug - User: $user_id, Expires: {$result['expires_at']}, Current: {$result['current_time']}, DB Valid: " . ($result['is_valid'] ? 'true' : 'false'));
             
-            // Handle timezone issues by treating stored times as UTC and comparing properly
-            $expires_at = new DateTime($result['expires_at'], new DateTimeZone('UTC'));
-            $now = new DateTime('now', new DateTimeZone('UTC'));
-            
-            // Convert to local timezone for comparison
-            $local_tz = new DateTimeZone(date_default_timezone_get());
-            $expires_local = clone $expires_at;
-            $expires_local->setTimezone($local_tz);
-            $now_local = clone $now;
-            $now_local->setTimezone($local_tz);
-            
-            $is_valid = $now < $expires_at; // Compare in UTC
-            
-            error_log("isTokenValid UTC comparison - Now UTC: " . $now->format('Y-m-d H:i:s T') . 
-                     ", Expires UTC: " . $expires_at->format('Y-m-d H:i:s T') . 
-                     ", Valid: " . ($is_valid ? 'true' : 'false'));
-            
-            return $is_valid;
+            // Use the database comparison result since it handles timezones correctly
+            return (bool)$result['is_valid'];
         } catch (PDOException $e) {
             error_log("Check token validity failed: " . $e->getMessage());
             return false;
