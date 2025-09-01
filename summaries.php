@@ -25,15 +25,23 @@ if (!$user_id) {
 require_once 'user_teams_api.php';
 $userTeamsAPI = new UserTeamsAPIHelper($user_id);
 
+// Debug: Log user connection check
+error_log("Summaries Page: Checking connection for user_id: $user_id");
+
 // Try user-specific API first, fallback to app-only API
-if ($userTeamsAPI->isConnected()) {
+$user_is_connected = $userTeamsAPI->isConnected();
+error_log("Summaries Page: User connected = " . ($user_is_connected ? 'true' : 'false'));
+
+if ($user_is_connected) {
     $teamsAPI = $userTeamsAPI;
     $is_user_connected = true;
+    error_log("Summaries Page: Using UserTeamsAPI for user $user_id");
 } else {
     // Fallback to app-only API (original behavior)
     require_once 'teams_api.php';
     $teamsAPI = new TeamsAPIHelper();
     $is_user_connected = false;
+    error_log("Summaries Page: Using app-only TeamsAPI (user not connected)");
 }
 
 // Handle date range and filters
@@ -568,8 +576,16 @@ function getBadgeText($type) {
                             <h4>No Teams Data Available</h4>
                             <?php if (!$is_user_connected): ?>
                             <p>Connect your Microsoft account in <a href="account.php" style="color: var(--primary-color);">Account Settings</a> to access your Teams data.</p>
+                            <p><small>Debug: User ID <?php echo $user_id; ?> - Connection Status: <?php echo $user_is_connected ? 'Connected' : 'Not Connected'; ?></small></p>
                             <?php else: ?>
-                            <p>Unable to load your Teams data. Please check your connection in <a href="account.php" style="color: var(--primary-color);">Account Settings</a>.</p>
+                            <p>Your Microsoft account is connected but no Teams data was found. This could mean:</p>
+                            <ul style="text-align: left; margin: 1rem 0;">
+                                <li>You're not a member of any Teams</li>
+                                <li>Your token needs to be refreshed</li>
+                                <li>There's an API permission issue</li>
+                            </ul>
+                            <p>Check your connection status in <a href="account.php" style="color: var(--primary-color);">Account Settings</a> or try reconnecting.</p>
+                            <p><small>Debug: User ID <?php echo $user_id; ?> - Using User API but found 0 channels</small></p>
                             <?php endif; ?>
                         </div>
                         <?php else: ?>

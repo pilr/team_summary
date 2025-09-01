@@ -258,7 +258,28 @@ class UserTeamsAPIHelper {
      * Check if user has connected their Microsoft account
      */
     public function isConnected() {
-        return $this->db->isTokenValid($this->user_id, 'microsoft');
+        // First check if any token exists (even if expired)
+        $token_info = $this->db->getOAuthToken($this->user_id, 'microsoft');
+        if (!$token_info) {
+            error_log("UserTeamsAPI: No token found for user " . $this->user_id);
+            return false;
+        }
+        
+        // Check if token is valid (not expired)
+        $isValid = $this->db->isTokenValid($this->user_id, 'microsoft');
+        error_log("UserTeamsAPI: isConnected for user " . $this->user_id . " = " . ($isValid ? 'true' : 'false'));
+        
+        // If token is expired, try to refresh it
+        if (!$isValid && !empty($token_info['refresh_token'])) {
+            error_log("UserTeamsAPI: Token expired, attempting refresh in isConnected()");
+            $refreshed = $this->refreshAccessToken($token_info['refresh_token']);
+            if ($refreshed) {
+                error_log("UserTeamsAPI: Token refreshed successfully in isConnected()");
+                return true;
+            }
+        }
+        
+        return $isValid;
     }
     
     /**
