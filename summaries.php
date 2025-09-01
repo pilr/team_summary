@@ -682,7 +682,15 @@ function getBadgeText($type) {
                         <div class="no-data-message">
                             <i class="fas fa-info-circle"></i>
                             <h4>No Summary Data Available</h4>
-                            <p>Unable to generate summaries from Microsoft Teams API. Please check your API connection.</p>
+                            <?php if (!$is_user_connected): ?>
+                            <p>Connect your Microsoft account in <a href="account.php" style="color: var(--primary-color);">Account Settings</a> to access your Teams data.</p>
+                            <?php else: ?>
+                            <p>No Teams data available to summarize.</p>
+                            <p style="margin-top: 1rem; color: #6c757d; font-size: 0.9em;">
+                                <i class="fas fa-lightbulb"></i> 
+                                <strong>Need help?</strong> <a href="teams_diagnostics.php" target="_blank" style="color: var(--primary-color);">View diagnostics</a> to learn how to join Microsoft Teams.
+                            </p>
+                            <?php endif; ?>
                         </div>
                         <?php else: ?>
                         <?php foreach ($summary_cards as $card): ?>
