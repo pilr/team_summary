@@ -366,6 +366,19 @@ function getBadgeText($type) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <link href="summaries-styles.css" rel="stylesheet">
+    
+    <style>
+    /* Inline styles needed to ensure proper specificity and override conflicts */
+    .main-content .summaries-content,
+    main.main-content .summaries-content {
+        max-width: 1400px !important;
+        margin: 0 auto !important;
+        padding: 48px 40px 64px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 48px !important;
+    }
+    </style>
 </head>
 <body>
     <div class="app-container">
