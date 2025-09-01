@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'database_helper.php';
+require_once 'teams_config.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -249,8 +250,16 @@ try {
                 <!-- Microsoft Teams Integration -->
                 <section class="account-section">
                     <div class="card">
-                        <div class="card-header">
-                            <h2><i class="fab fa-microsoft"></i> Microsoft Teams Integration</h2>
+                        <div class="card-header teams-header">
+                            <div class="header-content">
+                                <div class="header-icon">
+                                    <i class="fab fa-microsoft"></i>
+                                </div>
+                                <div class="header-text">
+                                    <h2>Microsoft Teams Integration</h2>
+                                    <p>Connect your personal Teams account for enhanced features</p>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-content">
                             <div class="integration-status" id="teamsIntegrationStatus">
@@ -259,7 +268,7 @@ try {
                                     <span class="status-text" id="statusText">Checking connection...</span>
                                 </div>
                                 <p class="status-description" id="statusDescription">
-                                    Connect your Microsoft account to access your Teams data and get personalized summaries.
+                                    Connect your Microsoft account to access your personal Teams data and get personalized summaries tailored to your teams and channels.
                                 </p>
                             </div>
                             
@@ -431,18 +440,24 @@ try {
 
         // Microsoft Teams Integration Functions
         async function connectToMicrosoft() {
-            const state = Math.random().toString(36).substring(2, 15);
-            sessionStorage.setItem('oauth_state', state);
-            
-            const authUrl = new URL('https://login.microsoftonline.com/<?php echo TEAMS_TENANT_ID; ?>/oauth2/v2.0/authorize');
-            authUrl.searchParams.append('client_id', '<?php echo TEAMS_CLIENT_ID; ?>');
-            authUrl.searchParams.append('response_type', 'code');
-            authUrl.searchParams.append('redirect_uri', window.location.origin + '/oauth_callback.php');
-            authUrl.searchParams.append('scope', 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Read.All');
-            authUrl.searchParams.append('state', state);
-            authUrl.searchParams.append('prompt', 'select_account');
-            
-            window.location.href = authUrl.toString();
+            try {
+                const state = Math.random().toString(36).substring(2, 15);
+                sessionStorage.setItem('oauth_state', state);
+                
+                const authUrl = new URL('https://login.microsoftonline.com/<?php echo TEAMS_TENANT_ID; ?>/oauth2/v2.0/authorize');
+                authUrl.searchParams.append('client_id', '<?php echo TEAMS_CLIENT_ID; ?>');
+                authUrl.searchParams.append('response_type', 'code');
+                authUrl.searchParams.append('redirect_uri', window.location.origin + '/oauth_callback.php');
+                authUrl.searchParams.append('scope', 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Read.All');
+                authUrl.searchParams.append('state', state);
+                authUrl.searchParams.append('prompt', 'select_account');
+                
+                console.log('Redirecting to:', authUrl.toString());
+                window.location.href = authUrl.toString();
+            } catch (error) {
+                console.error('Error connecting to Microsoft:', error);
+                showAlert('Failed to initiate connection. Please try again.', 'error');
+            }
         }
 
         async function disconnectMicrosoft() {
@@ -561,9 +576,12 @@ try {
 
         // Check connection status on page load
         document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Page loaded, checking Teams connection...');
             try {
                 const response = await fetch('api/check_teams_connection.php');
+                console.log('Connection check response:', response.status);
                 const result = await response.json();
+                console.log('Connection status result:', result);
                 updateConnectionStatus(result.status || 'disconnected');
             } catch (error) {
                 console.error('Error checking connection:', error);
@@ -773,12 +791,18 @@ try {
         }
 
         .btn {
-            padding: 0.75rem 1.5rem;
+            padding: 0.875rem 1.75rem;
             border: none;
-            border-radius: 8px;
-            font-weight: 500;
+            border-radius: 10px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            border: 2px solid transparent;
         }
 
         .btn-primary {
@@ -824,40 +848,55 @@ try {
         /* Microsoft Teams Integration Styles */
         .integration-status {
             margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(99, 102, 241, 0.1);
         }
 
         .status-indicator {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            margin-bottom: 0.75rem;
+            margin-bottom: 1rem;
         }
 
         .status-icon {
-            font-size: 0.875rem;
+            font-size: 1rem;
+            animation: pulse 2s infinite;
         }
 
         .status-icon.connected {
             color: #16a34a;
+            animation: none;
         }
 
         .status-icon.disconnected {
             color: #6b7280;
+            animation: none;
         }
 
         .status-icon.error {
             color: #ef4444;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         .status-text {
             font-weight: 600;
             color: var(--text-primary);
+            font-size: 1.1rem;
         }
 
         .status-description {
             color: var(--text-secondary);
             margin: 0;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            line-height: 1.5;
         }
 
         .integration-actions {
@@ -868,35 +907,62 @@ try {
         }
 
         .btn-microsoft {
-            background: #0078d4;
+            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
             color: white;
+            box-shadow: 0 4px 12px rgba(16, 110, 190, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
 
         .btn-microsoft:hover {
-            background: #106ebe;
+            background: linear-gradient(135deg, #106ebe 0%, #005a9e 100%);
+            box-shadow: 0 6px 20px rgba(16, 110, 190, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-microsoft:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(16, 110, 190, 0.3);
         }
 
         .btn-secondary {
             background: var(--surface-hover);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
         }
 
         .btn-secondary:hover {
             background: var(--border-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .integration-permissions {
-            padding: 1rem;
+            padding: 1.5rem;
             background: var(--surface-hover);
-            border-radius: 8px;
+            border-radius: 12px;
             border: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .integration-permissions::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #16a34a, #10b981, #16a34a);
+            border-radius: 12px 12px 0 0;
         }
 
         .integration-permissions h4 {
-            margin: 0 0 1rem 0;
+            margin: 0 0 1.25rem 0;
             color: var(--text-primary);
-            font-size: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
         }
 
         .permissions-list {
@@ -904,19 +970,67 @@ try {
             padding: 0;
             margin: 0;
             display: grid;
-            gap: 0.5rem;
+            gap: 0.75rem;
         }
 
         .permissions-list li {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
             color: var(--text-secondary);
-            font-size: 0.875rem;
+            font-size: 0.9rem;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .permissions-list li:hover {
+            background: rgba(255, 255, 255, 0.8);
+            transform: translateX(4px);
         }
 
         .permissions-list li i {
             color: #16a34a;
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Teams Header Styles */
+        .teams-header {
+            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .header-text h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .header-text p {
+            margin: 0.25rem 0 0 0;
+            opacity: 0.9;
+            font-size: 0.9rem;
         }
 
         @media (max-width: 768px) {
