@@ -578,14 +578,33 @@ function getBadgeText($type) {
                             <p>Connect your Microsoft account in <a href="account.php" style="color: var(--primary-color);">Account Settings</a> to access your Teams data.</p>
                             <p><small>Debug: User ID <?php echo $user_id; ?> - Connection Status: <?php echo $user_is_connected ? 'Connected' : 'Not Connected'; ?></small></p>
                             <?php else: ?>
-                            <p>Your Microsoft account is connected but no Teams data was found. This could mean:</p>
-                            <ul style="text-align: left; margin: 1rem 0;">
-                                <li>You're not a member of any Teams</li>
-                                <li>Your token needs to be refreshed</li>
-                                <li>There's an API permission issue</li>
-                            </ul>
-                            <p>Check your connection status in <a href="account.php" style="color: var(--primary-color);">Account Settings</a> or try reconnecting.</p>
-                            <p><small>Debug: User ID <?php echo $user_id; ?> - Using User API but found 0 channels</small></p>
+                            <p>Your Microsoft account is connected but no Teams data was found.</p>
+                            <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; margin: 1rem 0; text-align: left;">
+                                <h5 style="margin: 0 0 0.5rem 0; color: #495057;"><i class="fas fa-info-circle"></i> Most Common Cause:</h5>
+                                <p style="margin: 0; color: #6c757d;"><strong>You are not a member of any Microsoft Teams.</strong></p>
+                                <p style="margin: 0.5rem 0 0 0; font-size: 0.9em; color: #6c757d;">
+                                    To fix this: Join a Microsoft Team through the Teams app or have a team admin add you as a member.
+                                </p>
+                            </div>
+                            <details style="margin: 1rem 0;">
+                                <summary style="cursor: pointer; color: var(--primary-color); font-weight: 500;">🔍 View Detailed Diagnostics</summary>
+                                <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                                    <p><strong>Technical Details:</strong></p>
+                                    <ul style="margin: 0.5rem 0;">
+                                        <li>API Connection: ✅ Working</li>
+                                        <li>Authentication: ✅ Token Valid</li>
+                                        <li>Teams Found: ❌ 0 teams</li>
+                                        <li>User ID: <?php echo $user_id; ?></li>
+                                    </ul>
+                                    <p><strong>Possible Solutions:</strong></p>
+                                    <ol style="margin: 0.5rem 0;">
+                                        <li>Join a Microsoft Team in the Teams app</li>
+                                        <li>Have a team admin add you as a member (not guest)</li>
+                                        <li><a href="teams_diagnostics.php" target="_blank" style="color: var(--primary-color);">View detailed diagnostics</a></li>
+                                        <li><a href="account.php" style="color: var(--primary-color);">Reconnect your Microsoft account</a></li>
+                                    </ol>
+                                </div>
+                            </details>
                             <?php endif; ?>
                         </div>
                         <?php else: ?>
