@@ -71,9 +71,9 @@ try {
         throw new Exception("Invalid token response: $response");
     }
 
-    // Calculate expiration time
+    // Calculate expiration time in UTC
     $expires_in = $token_response['expires_in'] ?? 3600;
-    $expires_at = new DateTime();
+    $expires_at = new DateTime('now', new DateTimeZone('UTC'));
     $expires_at->add(new DateInterval("PT{$expires_in}S"));
 
     // Save token to database

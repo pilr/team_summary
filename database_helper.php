@@ -127,6 +127,11 @@ class DatabaseHelper {
     
     public function updateOAuthToken($user_id, $provider, $access_token, $refresh_token, $expires_at) {
         try {
+            // Ensure expires_at is in UTC format if it's a DateTime object
+            if ($expires_at instanceof DateTime) {
+                $expires_at = $expires_at->format('Y-m-d H:i:s');
+            }
+            
             $stmt = $this->pdo->prepare("
                 UPDATE oauth_tokens 
                 SET access_token = ?, refresh_token = ?, expires_at = ?, updated_at = CURRENT_TIMESTAMP
@@ -178,12 +183,22 @@ class DatabaseHelper {
             // Log for debugging
             error_log("isTokenValid Debug - User: $user_id, Expires: {$result['expires_at']}, Current: {$result['current_time']}");
             
-            // Compare timestamps using PHP instead of MySQL NOW() to avoid timezone issues
-            $expires_at = new DateTime($result['expires_at']);
-            $now = new DateTime();
+            // Handle timezone issues by treating stored times as UTC and comparing properly
+            $expires_at = new DateTime($result['expires_at'], new DateTimeZone('UTC'));
+            $now = new DateTime('now', new DateTimeZone('UTC'));
             
-            $is_valid = $now < $expires_at;
-            error_log("isTokenValid Result: " . ($is_valid ? 'true' : 'false') . " (PHP DateTime comparison)");
+            // Convert to local timezone for comparison
+            $local_tz = new DateTimeZone(date_default_timezone_get());
+            $expires_local = clone $expires_at;
+            $expires_local->setTimezone($local_tz);
+            $now_local = clone $now;
+            $now_local->setTimezone($local_tz);
+            
+            $is_valid = $now < $expires_at; // Compare in UTC
+            
+            error_log("isTokenValid UTC comparison - Now UTC: " . $now->format('Y-m-d H:i:s T') . 
+                     ", Expires UTC: " . $expires_at->format('Y-m-d H:i:s T') . 
+                     ", Valid: " . ($is_valid ? 'true' : 'false'));
             
             return $is_valid;
         } catch (PDOException $e) {
