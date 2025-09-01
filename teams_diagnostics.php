@@ -28,8 +28,53 @@ $api_working = false;
 
 if ($is_connected) {
     $token_info = $db->getOAuthToken($user_id, 'microsoft');
+    
+    // Test basic API access (User.Read scope)
+    $profile_working = ($userTeamsAPI->getUserProfile() !== false);
+    
+    // Test Teams API access (Team.ReadBasic.All scope) 
     $teams = $userTeamsAPI->getUserTeams();
-    $api_working = ($userTeamsAPI->getUserProfile() !== false);
+    $teams_api_working = !empty($teams) || !$profile_working; // If profile doesn't work, teams won't either
+    
+    // Check for permissions error by testing a simple Teams API call
+    $has_teams_permission = true;
+    if ($profile_working && empty($teams)) {
+        // Profile works but no teams - could be permissions issue
+        // Make a raw API call to detect 403 errors
+        $test_response = testTeamsAPIPermission($token_info['access_token']);
+        $has_teams_permission = !isset($test_response['forbidden']);
+    }
+    
+    $api_working = $profile_working;
+}
+
+/**
+ * Test Teams API permission by making a raw API call
+ */
+function testTeamsAPIPermission($access_token) {
+    $url = 'https://graph.microsoft.com/v1.0/me/joinedTeams';
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $access_token,
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($http_code === 403) {
+        $error_data = json_decode($response, true);
+        return [
+            'forbidden' => true,
+            'error' => $error_data['error'] ?? null
+        ];
+    }
+    
+    return ['forbidden' => false, 'http_code' => $http_code];
 }
 ?>
 
@@ -234,6 +279,55 @@ if ($is_connected) {
                     <a href="account.php" class="btn">
                         <i class="fas fa-refresh"></i> Reconnect Account
                     </a>
+                </div>
+            </div>
+
+            <?php elseif ($profile_working && empty($teams) && !$has_teams_permission): ?>
+            <!-- Connected but Teams API permissions issue -->
+            <div class="status-card status-error">
+                <div class="status-icon error text-center">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3 class="text-center error">Teams API Permissions Issue</h3>
+                <p class="text-center">Your Microsoft account is connected, but the app doesn't have permission to access Teams data.</p>
+            </div>
+
+            <div class="diagnostic-item">
+                <i class="fas fa-check success"></i>
+                <div>
+                    <strong>Microsoft Account Connected</strong>
+                    <div style="font-size: 0.9em; color: #6b7280;">
+                        Token expires: <?php echo $token_info['expires_at'] ?? 'Unknown'; ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="diagnostic-item">
+                <i class="fas fa-check success"></i>
+                <div><strong>Basic API Access Working</strong></div>
+            </div>
+
+            <div class="diagnostic-item">
+                <i class="fas fa-times error"></i>
+                <div><strong>Teams API Access: 403 Forbidden</strong></div>
+            </div>
+
+            <div class="solution-box">
+                <h4><i class="fas fa-exclamation-triangle"></i> Admin Consent Required</h4>
+                <p><strong>This is a permissions issue at the Azure app registration level.</strong></p>
+                <ol>
+                    <li><strong>Contact IT Administrator:</strong> The app needs admin consent for Teams permissions</li>
+                    <li><strong>Required permissions:</strong> Team.ReadBasic.All, Channel.ReadBasic.All, ChannelMessage.Read.All</li>
+                    <li><strong>External users:</strong> Additional restrictions may apply for external users</li>
+                    <li><strong>Organization policy:</strong> Your organization may not allow Teams API access for external apps</li>
+                </ol>
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                    <p style="margin: 0; color: #dc2626; font-weight: 500;">
+                        <i class="fas fa-info-circle"></i> <strong>For Developers:</strong>
+                    </p>
+                    <p style="margin: 0.5rem 0 0 0; color: #7f1d1d;">
+                        The Azure app registration needs admin consent for delegated permissions. This cannot be fixed by reconnecting - it requires Azure admin action.
+                    </p>
                 </div>
             </div>
 

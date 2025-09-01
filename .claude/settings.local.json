@@ -10,7 +10,9 @@
       "Bash(git pull:*)",
       "Bash(git commit:*)",
       "Bash(del:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(php:*)",
+      "WebFetch(domain:localhost)"
     ],
     "deny": [],
     "ask": []

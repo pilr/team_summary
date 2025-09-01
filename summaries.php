@@ -52,6 +52,12 @@ $type_filter = $_GET['type'] ?? 'all';
 // Get channels from Teams API (real-time, no cache)
 $channels = $teamsAPI->getAllChannels();
 
+// If user is connected but no channels found, check if it's a permissions issue
+$has_permissions_issue = false;
+if ($is_user_connected && empty($channels)) {
+    $has_permissions_issue = testTeamsPermissionsIssue($user_id);
+}
+
 // Get real statistics data based on filters
 function getStatistics($channel_filter, $type_filter, $teamsAPI, $channels) {
     $stats = [
@@ -300,6 +306,34 @@ function generateSummaryCards($channels, $teamsAPI, $channel_filter) {
 
 // Generate real summary cards from API data
 $summary_cards = generateSummaryCards($channels, $teamsAPI, $channel_filter);
+
+/**
+ * Test if the issue is permissions-related (403 Forbidden)
+ */
+function testTeamsPermissionsIssue($user_id) {
+    global $db;
+    $token_info = $db->getOAuthToken($user_id, 'microsoft');
+    
+    if (!$token_info) {
+        return false;
+    }
+    
+    // Make a raw API call to detect 403 errors
+    $url = 'https://graph.microsoft.com/v1.0/me/joinedTeams';
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token_info['access_token'],
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    return $http_code === 403;
+}
 
 // Function to get badge class for timeline items
 function getBadgeClass($type) {
@@ -577,6 +611,15 @@ function getBadgeText($type) {
                             <?php if (!$is_user_connected): ?>
                             <p>Connect your Microsoft account in <a href="account.php" style="color: var(--primary-color);">Account Settings</a> to access your Teams data.</p>
                             <p><small>Debug: User ID <?php echo $user_id; ?> - Connection Status: <?php echo $user_is_connected ? 'Connected' : 'Not Connected'; ?></small></p>
+                            <?php elseif ($has_permissions_issue): ?>
+                            <p>Your Microsoft account is connected but the app doesn't have permission to access Teams data.</p>
+                            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; margin: 1rem 0; text-align: left;">
+                                <h5 style="margin: 0 0 0.5rem 0; color: #dc2626;"><i class="fas fa-shield-alt"></i> Permissions Issue:</h5>
+                                <p style="margin: 0; color: #7f1d1d;"><strong>Admin consent required for Teams API access.</strong></p>
+                                <p style="margin: 0.5rem 0 0 0; font-size: 0.9em; color: #7f1d1d;">
+                                    Contact your IT administrator - this app needs admin approval to access Microsoft Teams data.
+                                </p>
+                            </div>
                             <?php else: ?>
                             <p>Your Microsoft account is connected but no Teams data was found.</p>
                             <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; margin: 1rem 0; text-align: left;">
@@ -684,6 +727,12 @@ function getBadgeText($type) {
                             <h4>No Summary Data Available</h4>
                             <?php if (!$is_user_connected): ?>
                             <p>Connect your Microsoft account in <a href="account.php" style="color: var(--primary-color);">Account Settings</a> to access your Teams data.</p>
+                            <?php elseif ($has_permissions_issue): ?>
+                            <p>App doesn't have permission to access Teams data.</p>
+                            <p style="margin-top: 1rem; color: #dc2626; font-size: 0.9em;">
+                                <i class="fas fa-shield-alt"></i> 
+                                <strong>Admin consent required.</strong> <a href="teams_diagnostics.php" target="_blank" style="color: var(--primary-color);">View diagnostics</a> for details.
+                            </p>
                             <?php else: ?>
                             <p>No Teams data available to summarize.</p>
                             <p style="margin-top: 1rem; color: #6c757d; font-size: 0.9em;">
