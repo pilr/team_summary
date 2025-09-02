@@ -759,6 +759,10 @@ function getBadgeText($type) {
                                 <i class="fas fa-magic"></i>
                                 Generate Summary
                             </button>
+                            <button class="generate-ai-summary-btn" onclick="testAISummaryAPI()" style="background: rgba(255,255,255,0.1); margin-left: 0.5rem; font-size: 0.85em;">
+                                <i class="fas fa-flask"></i>
+                                Test API
+                            </button>
                         </div>
                         <div class="ai-summary-content" id="aiSummaryContent">
                             <div class="ai-summary-placeholder">
@@ -1225,6 +1229,67 @@ function getBadgeText($type) {
             }
         }
 
+        // Function to test AI summary API
+        function testAISummaryAPI() {
+            const contentDiv = document.getElementById('aiSummaryContent');
+            
+            contentDiv.innerHTML = `
+                <div class="ai-loading">
+                    <i class="fas fa-flask fa-spin"></i>
+                    <div>
+                        <p><strong>Testing AI API connectivity...</strong></p>
+                    </div>
+                </div>
+            `;
+            
+            fetch('api/test_ai_summary.php', {
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                console.log('Test API Response Status:', response.status);
+                return response.text().then(text => {
+                    console.log('Test API Raw Response:', text);
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        throw new Error(`Invalid JSON: ${text.substring(0, 100)}`);
+                    }
+                });
+            })
+            .then(data => {
+                console.log('Test API Response Data:', data);
+                let html = '<div class="ai-summary-result">';
+                if (data.success) {
+                    html += '<h4>✅ API Test Successful</h4>';
+                    html += '<ul>';
+                    html += `<li>OpenAI Key Loaded: ${data.openai_key_loaded ? '✅' : '❌'}</li>`;
+                    html += `<li>Key Length: ${data.openai_key_length} characters</li>`;
+                    html += `<li>cURL Available: ${data.curl_available ? '✅' : '❌'}</li>`;
+                    html += `<li>Session Active: ${data.session_active ? '✅' : '❌'}</li>`;
+                    html += `<li>Timestamp: ${data.timestamp}</li>`;
+                    html += '</ul>';
+                } else {
+                    html += '<h4>❌ API Test Failed</h4>';
+                    html += `<p>Error: ${data.error}</p>`;
+                }
+                html += '</div>';
+                contentDiv.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Test API Error:', error);
+                contentDiv.innerHTML = `
+                    <div class="ai-error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p><strong>Test Failed</strong></p>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            });
+        }
+
         // Function to generate AI summary
         function generateAISummary() {
             const contentDiv = document.getElementById('aiSummaryContent');
@@ -1253,10 +1318,24 @@ function getBadgeText($type) {
             })
                 .then(response => {
                     console.log('AI Summary API Response Status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
+                    console.log('AI Summary API Response Headers:', response.headers.get('content-type'));
+                    
+                    // Get response text first to debug
+                    return response.text().then(text => {
+                        console.log('AI Summary Raw Response:', text);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}, response: ${text.substring(0, 200)}`);
+                        }
+                        
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            console.error('JSON Parse Error:', e);
+                            console.error('Response was:', text);
+                            throw new Error(`Invalid JSON response: ${text.substring(0, 100)}...`);
+                        }
+                    });
                 })
                 .then(data => {
                     console.log('AI Summary API Response Data:', data);

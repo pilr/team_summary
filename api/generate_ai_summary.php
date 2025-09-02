@@ -1,9 +1,18 @@
 <?php
+// Prevent any output before JSON response
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ob_start();
+
 session_start();
 require_once '../config.php';
 require_once '../user_teams_api.php';
 
+// Clear any output buffer and send clean JSON
+ob_clean();
 header('Content-Type: application/json');
+header('Cache-Control: no-cache, must-revalidate');
+header('Expires: 0');
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -22,12 +31,26 @@ if (!$user_id) {
 
 try {
     // Get OpenAI API key
-    $openai_key = trim(file_get_contents('../openai.txt'));
-    
-    if (empty($openai_key)) {
-        echo json_encode(['success' => false, 'error' => 'OpenAI API key not found']);
+    $openai_file = '../openai.txt';
+    if (!file_exists($openai_file)) {
+        echo json_encode(['success' => false, 'error' => 'OpenAI key file not found']);
         exit;
     }
+    
+    $openai_key = trim(file_get_contents($openai_file));
+    
+    if (empty($openai_key) || strlen($openai_key) < 10) {
+        echo json_encode(['success' => false, 'error' => 'Invalid OpenAI API key']);
+        exit;
+    }
+    
+    // Validate key format (should start with sk-)
+    if (!preg_match('/^sk-[a-zA-Z0-9\-_]+$/', $openai_key)) {
+        echo json_encode(['success' => false, 'error' => 'Invalid OpenAI API key format']);
+        exit;
+    }
+    
+    error_log("AI Summary: OpenAI key loaded successfully for user $user_id");
     
     // Initialize Teams API
     $userTeamsAPI = new UserTeamsAPIHelper($user_id);
@@ -180,8 +203,21 @@ try {
     ]);
     
 } catch (Exception $e) {
+    // Clear any output buffer to ensure clean JSON
+    if (ob_get_level()) {
+        ob_clean();
+    }
+    
     error_log("AI Summary: Exception for user $user_id: " . $e->getMessage());
     error_log("AI Summary: Stack trace: " . $e->getTraceAsString());
+    
+    // Send clean JSON error response
+    http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Server error: ' . $e->getMessage()]);
+}
+
+// Ensure all output is sent
+if (ob_get_level()) {
+    ob_end_flush();
 }
 ?>
