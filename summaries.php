@@ -289,6 +289,8 @@ function generateSummaryCards($channels, $teamsAPI, $channel_filter) {
         $summary_cards[] = [
             'channel' => $channel['displayName'],
             'teamName' => $channel['teamName'],
+            'teamId' => $channel['teamId'],
+            'channelId' => $channel['id'],
             'icon' => 'hashtag',
             'time_range' => $timeRange,
             'metrics' => [
@@ -377,6 +379,252 @@ function getBadgeText($type) {
         display: flex !important;
         flex-direction: column !important;
         gap: 48px !important;
+    }
+
+    /* Modal styles for View Details */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 8px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: #111827;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #6b7280;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+    }
+
+    .modal-close:hover {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .channel-detail-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .channel-detail-section h4 {
+        margin: 0 0 1rem 0;
+        color: #374151;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 0.5rem;
+    }
+
+    .channel-detail-section p {
+        margin: 0.5rem 0;
+        color: #6b7280;
+    }
+
+    .loading-details, .error-details {
+        text-align: center;
+        padding: 2rem;
+        color: #6b7280;
+    }
+
+    .error-details {
+        color: #dc2626;
+    }
+
+    /* AI Summary Section Styles */
+    .ai-summary-section {
+        margin-bottom: 2rem;
+    }
+
+    .ai-summary-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 0;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        overflow: hidden;
+    }
+
+    .ai-summary-header {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .ai-summary-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: white;
+    }
+
+    .ai-summary-title i {
+        font-size: 1.5rem;
+    }
+
+    .ai-summary-title h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .ai-badge {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .generate-ai-summary-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .generate-ai-summary-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: translateY(-2px);
+    }
+
+    .ai-summary-content {
+        background: white;
+        padding: 2rem;
+        min-height: 150px;
+    }
+
+    .ai-summary-placeholder {
+        text-align: center;
+        color: #6b7280;
+    }
+
+    .ai-summary-placeholder i {
+        font-size: 3rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .ai-summary-placeholder p {
+        margin: 0.5rem 0;
+        line-height: 1.6;
+    }
+
+    .ai-summary-description {
+        font-size: 0.9rem;
+        color: #9ca3af !important;
+    }
+
+    .ai-summary-result {
+        line-height: 1.7;
+        color: #374151;
+    }
+
+    .ai-summary-result h4 {
+        color: #1f2937;
+        margin: 1.5rem 0 1rem 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 0.5rem;
+    }
+
+    .ai-summary-result ul {
+        margin: 1rem 0;
+        padding-left: 1.5rem;
+    }
+
+    .ai-summary-result li {
+        margin: 0.5rem 0;
+    }
+
+    .ai-summary-meta {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+        font-size: 0.9rem;
+        color: #6b7280;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .ai-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        color: #6b7280;
+        padding: 2rem;
+    }
+
+    .ai-loading i {
+        font-size: 1.5rem;
+        animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .ai-error {
+        text-align: center;
+        color: #dc2626;
+        padding: 2rem;
+    }
+
+    .ai-error i {
+        font-size: 2rem;
+        margin-bottom: 1rem;
     }
     </style>
 </head>
@@ -498,6 +746,30 @@ function getBadgeText($type) {
                     </div>
                 </section>
 
+                <!-- AI Summary Section -->
+                <section class="ai-summary-section">
+                    <div class="ai-summary-card">
+                        <div class="ai-summary-header">
+                            <div class="ai-summary-title">
+                                <i class="fas fa-brain"></i>
+                                <h3>AI-Generated Summary</h3>
+                                <span class="ai-badge">Powered by OpenAI</span>
+                            </div>
+                            <button class="generate-ai-summary-btn" onclick="generateAISummary()">
+                                <i class="fas fa-magic"></i>
+                                Generate Summary
+                            </button>
+                        </div>
+                        <div class="ai-summary-content" id="aiSummaryContent">
+                            <div class="ai-summary-placeholder">
+                                <i class="fas fa-lightbulb"></i>
+                                <p>Click "Generate Summary" to create an AI-powered analysis of all your recent Teams conversations and messages.</p>
+                                <p class="ai-summary-description">The AI will analyze key topics, decisions, action items, and team activity patterns to provide you with actionable insights.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Summary Statistics -->
                 <section class="summary-stats-section">
                     <div class="stats-grid">
@@ -596,7 +868,7 @@ function getBadgeText($type) {
                                         
                                         <div class="timeline-meta">
                                             <span class="timeline-author"><?php echo htmlspecialchars($item['author']); ?></span>
-                                            <span class="timeline-reactions"><?php echo $item['reactions']; ?> reactions</span>
+                                            <span class="timeline-reactions"><?php echo isset($item['reactions']) ? $item['reactions'] : 0; ?> reactions</span>
                                         </div>
                                     </div>
                                 </div>
@@ -694,9 +966,9 @@ function getBadgeText($type) {
                             <div class="channel-members">
                                 <h5>Channel Members</h5>
                                 <div class="members-list" id="members-<?php echo htmlspecialchars($channel['id']); ?>">
-                                    <div class="loading-members">
-                                        <i class="fas fa-spinner fa-spin"></i>
-                                        Loading members...
+                                    <div class="members-placeholder">
+                                        <i class="fas fa-users"></i>
+                                        Click "Load Members" to view channel members
                                     </div>
                                 </div>
                             </div>
@@ -804,7 +1076,7 @@ function getBadgeText($type) {
                                 </div>
                             </div>
                             <div class="summary-card-footer">
-                                <button class="action-btn primary">View Details</button>
+                                <button class="action-btn primary" onclick="viewSummaryDetails('<?php echo htmlspecialchars($card['channel']); ?>', '<?php echo htmlspecialchars($card['teamId']); ?>', '<?php echo htmlspecialchars($card['channelId']); ?>')">View Details</button>
                                 <button class="action-btn secondary">Export</button>
                             </div>
                         </div>
@@ -871,6 +1143,170 @@ function getBadgeText($type) {
                 .catch(error => {
                     console.error('Error loading members:', error);
                     membersContainer.innerHTML = '<div class="error-loading">Error loading members</div>';
+                });
+        }
+        
+        // Function to view summary details
+        function viewSummaryDetails(channelName, teamId, channelId) {
+            // Create modal content with detailed information
+            const modalContent = `
+                <div class="modal-overlay" id="detailsModal" onclick="closeDetailsModal()">
+                    <div class="modal-content" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <h3>Channel Details: ${channelName}</h3>
+                            <button class="modal-close" onclick="closeDetailsModal()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="loading-details">
+                                <i class="fas fa-spinner fa-spin"></i> Loading detailed information...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalContent);
+            
+            // Load detailed channel information
+            if (teamId && channelId) {
+                fetch(`api/get_channel_details.php?teamId=${encodeURIComponent(teamId)}&channelId=${encodeURIComponent(channelId)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const modalBody = document.querySelector('#detailsModal .modal-body');
+                        if (data.success) {
+                            modalBody.innerHTML = `
+                                <div class="channel-detail-section">
+                                    <h4>Channel Information</h4>
+                                    <p><strong>Name:</strong> ${data.channel.displayName}</p>
+                                    <p><strong>Description:</strong> ${data.channel.description || 'No description'}</p>
+                                    <p><strong>Members:</strong> ${data.memberCount || 'Unknown'}</p>
+                                </div>
+                                <div class="channel-detail-section">
+                                    <h4>Recent Activity</h4>
+                                    <p><strong>Total Messages:</strong> ${data.messageCount || 0}</p>
+                                    <p><strong>Last Activity:</strong> ${data.lastActivity || 'Unknown'}</p>
+                                </div>
+                            `;
+                        } else {
+                            modalBody.innerHTML = `
+                                <div class="error-details">
+                                    <p>Unable to load detailed information for this channel.</p>
+                                    <p>Error: ${data.error || 'Unknown error'}</p>
+                                </div>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        const modalBody = document.querySelector('#detailsModal .modal-body');
+                        modalBody.innerHTML = `
+                            <div class="error-details">
+                                <p>Error loading channel details.</p>
+                            </div>
+                        `;
+                    });
+            } else {
+                const modalBody = document.querySelector('#detailsModal .modal-body');
+                modalBody.innerHTML = `
+                    <div class="channel-detail-section">
+                        <h4>Channel Information</h4>
+                        <p><strong>Name:</strong> ${channelName}</p>
+                        <p>Detailed information not available for this channel.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Function to close details modal
+        function closeDetailsModal() {
+            const modal = document.getElementById('detailsModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Function to generate AI summary
+        function generateAISummary() {
+            const contentDiv = document.getElementById('aiSummaryContent');
+            const btn = document.querySelector('.generate-ai-summary-btn');
+            
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            
+            contentDiv.innerHTML = `
+                <div class="ai-loading">
+                    <i class="fas fa-brain fa-spin"></i>
+                    <div>
+                        <p><strong>AI is analyzing your Teams conversations...</strong></p>
+                        <p>This may take a few moments while we process your messages and generate insights.</p>
+                    </div>
+                </div>
+            `;
+            
+            // Call the API
+            fetch('api/generate_ai_summary.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Format the summary content
+                        let summaryHtml = `<div class="ai-summary-result">`;
+                        
+                        // Convert markdown-like formatting to HTML
+                        let formattedSummary = data.summary
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/^(\d+\.\s+\*\*.*?\*\*)/gm, '<h4>$1</h4>')
+                            .replace(/^- (.*?)$/gm, '<li>$1</li>')
+                            .replace(/(\n\n)/g, '</p><p>')
+                            .replace(/^(?!<[hl]|<li)(.+)$/gm, '<p>$1</p>');
+                        
+                        // Wrap consecutive list items in ul tags
+                        formattedSummary = formattedSummary.replace(/(<li>.*?<\/li>\s*)+/gs, function(match) {
+                            return '<ul>' + match + '</ul>';
+                        });
+                        
+                        summaryHtml += formattedSummary;
+                        summaryHtml += `
+                            <div class="ai-summary-meta">
+                                <div>
+                                    <strong>${data.message_count}</strong> messages analyzed from 
+                                    <strong>${data.channels_analyzed}</strong> channels
+                                </div>
+                                <div>Generated at ${data.generated_at}</div>
+                            </div>
+                        </div>`;
+                        
+                        contentDiv.innerHTML = summaryHtml;
+                    } else {
+                        contentDiv.innerHTML = `
+                            <div class="ai-error">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <p><strong>Failed to generate AI summary</strong></p>
+                                <p>${data.error || 'Unknown error occurred'}</p>
+                                <button class="generate-ai-summary-btn" onclick="generateAISummary()" style="margin-top: 1rem; position: static; transform: none;">
+                                    <i class="fas fa-retry"></i> Try Again
+                                </button>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error generating AI summary:', error);
+                    contentDiv.innerHTML = `
+                        <div class="ai-error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p><strong>Network error</strong></p>
+                            <p>Unable to connect to the AI service. Please check your connection and try again.</p>
+                            <button class="generate-ai-summary-btn" onclick="generateAISummary()" style="margin-top: 1rem; position: static; transform: none;">
+                                <i class="fas fa-retry"></i> Try Again
+                            </button>
+                        </div>
+                    `;
+                })
+                .finally(() => {
+                    // Reset button state
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
                 });
         }
     </script>
