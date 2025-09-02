@@ -1245,9 +1245,21 @@ function getBadgeText($type) {
             `;
             
             // Call the API
-            fetch('api/generate_ai_summary.php')
-                .then(response => response.json())
+            fetch('api/generate_ai_summary.php', {
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => {
+                    console.log('AI Summary API Response Status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('AI Summary API Response Data:', data);
                     if (data.success) {
                         // Format the summary content
                         let summaryHtml = `<div class="ai-summary-result">`;
@@ -1292,11 +1304,31 @@ function getBadgeText($type) {
                 })
                 .catch(error => {
                     console.error('Error generating AI summary:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        stack: error.stack,
+                        name: error.name
+                    });
+                    
+                    let errorMessage = 'Network error';
+                    let errorDetails = 'Unable to connect to the AI service. Please check your connection and try again.';
+                    
+                    if (error.message.includes('HTTP error')) {
+                        errorMessage = 'Server error';
+                        errorDetails = `The AI service returned an error: ${error.message}`;
+                    } else if (error.message.includes('Failed to fetch')) {
+                        errorMessage = 'Connection failed';
+                        errorDetails = 'Cannot reach the AI service. Please check if the server is running and accessible.';
+                    }
+                    
                     contentDiv.innerHTML = `
                         <div class="ai-error">
                             <i class="fas fa-exclamation-triangle"></i>
-                            <p><strong>Network error</strong></p>
-                            <p>Unable to connect to the AI service. Please check your connection and try again.</p>
+                            <p><strong>${errorMessage}</strong></p>
+                            <p>${errorDetails}</p>
+                            <p style="font-size: 0.8em; color: #888; margin-top: 1rem;">
+                                Technical details: ${error.message}
+                            </p>
                             <button class="generate-ai-summary-btn" onclick="generateAISummary()" style="margin-top: 1rem; position: static; transform: none;">
                                 <i class="fas fa-retry"></i> Try Again
                             </button>
