@@ -1269,6 +1269,12 @@ function getBadgeText($type) {
                     html += `<li>Key Length: ${data.openai_key_length} characters</li>`;
                     html += `<li>cURL Available: ${data.curl_available ? '✅' : '❌'}</li>`;
                     html += `<li>Session Active: ${data.session_active ? '✅' : '❌'}</li>`;
+                    if (data.teams_api_test) {
+                        html += `<li>Teams API: ${data.teams_api_test}</li>`;
+                    }
+                    if (data.channels_test) {
+                        html += `<li>Channels: ${data.channels_test}</li>`;
+                    }
                     html += `<li>Timestamp: ${data.timestamp}</li>`;
                     html += '</ul>';
                 } else {

@@ -30,6 +30,25 @@ try {
     }
     curl_close($ch);
     
+    // Test Teams API integration if session is active
+    $teamsAPI_test = null;
+    $channels_test = null;
+    if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_SESSION['user_id'])) {
+        try {
+            require_once '../user_teams_api.php';
+            $userTeamsAPI = new UserTeamsAPIHelper($_SESSION['user_id']);
+            if ($userTeamsAPI->isConnected()) {
+                $teamsAPI_test = 'Connected';
+                $channels = $userTeamsAPI->getAllChannels();
+                $channels_test = count($channels) . ' channels found';
+            } else {
+                $teamsAPI_test = 'Not connected';
+            }
+        } catch (Exception $e) {
+            $teamsAPI_test = 'Error: ' . $e->getMessage();
+        }
+    }
+    
     echo json_encode([
         'success' => true, 
         'message' => 'AI Summary API test successful',
@@ -37,6 +56,8 @@ try {
         'openai_key_length' => strlen($openai_key),
         'curl_available' => function_exists('curl_init'),
         'session_active' => session_status() === PHP_SESSION_ACTIVE,
+        'teams_api_test' => $teamsAPI_test,
+        'channels_test' => $channels_test,
         'timestamp' => date('Y-m-d H:i:s')
     ]);
     

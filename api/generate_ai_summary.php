@@ -63,7 +63,7 @@ try {
     $teamsAPI = $userTeamsAPI;
     
     // Get all channels
-    $channels = $teamsAPI->getChannels();
+    $channels = $teamsAPI->getAllChannels();
     
     if (empty($channels)) {
         error_log("AI Summary: No channels found for user $user_id");
