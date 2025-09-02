@@ -1,9 +1,9 @@
 <?php
+session_start();
 require_once '../config.php';
-require_once '../classes/TeamsAPI.php';
+require_once '../user_teams_api.php';
 
 header('Content-Type: application/json');
-session_start();
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => 'Not authenticated']);
@@ -22,15 +22,25 @@ try {
     }
     
     // Initialize Teams API
-    $teamsAPI = new TeamsAPI($db, $user_id);
+    $userTeamsAPI = new UserTeamsAPIHelper($user_id);
+    
+    if (!$userTeamsAPI->isConnected()) {
+        echo json_encode(['success' => false, 'error' => 'Microsoft account not connected']);
+        exit;
+    }
+    
+    $teamsAPI = $userTeamsAPI;
     
     // Get all channels
     $channels = $teamsAPI->getChannels();
     
     if (empty($channels)) {
+        error_log("AI Summary: No channels found for user $user_id");
         echo json_encode(['success' => false, 'error' => 'No channels found']);
         exit;
     }
+    
+    error_log("AI Summary: Found " . count($channels) . " channels for user $user_id");
     
     // Collect messages from all channels
     $allMessages = [];
@@ -120,15 +130,29 @@ try {
         'Content-Type: application/json',
         'Authorization: Bearer ' . $openai_key
     ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
     
-    if ($httpCode !== 200) {
-        echo json_encode(['success' => false, 'error' => 'OpenAI API request failed: ' . $response]);
+    if ($curlError) {
+        error_log("AI Summary: cURL error: " . $curlError);
+        echo json_encode(['success' => false, 'error' => 'Connection error: ' . $curlError]);
         exit;
     }
+    
+    if ($httpCode !== 200) {
+        error_log("AI Summary: OpenAI API error (HTTP $httpCode): " . $response);
+        echo json_encode(['success' => false, 'error' => 'OpenAI API request failed (HTTP ' . $httpCode . '): ' . substr($response, 0, 200)]);
+        exit;
+    }
+    
+    error_log("AI Summary: OpenAI API call successful for user $user_id");
     
     $aiResponse = json_decode($response, true);
     
@@ -148,6 +172,8 @@ try {
     ]);
     
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    error_log("AI Summary: Exception for user $user_id: " . $e->getMessage());
+    error_log("AI Summary: Stack trace: " . $e->getTraceAsString());
+    echo json_encode(['success' => false, 'error' => 'Server error: ' . $e->getMessage()]);
 }
 ?>
