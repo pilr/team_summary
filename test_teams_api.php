@@ -73,7 +73,7 @@ testStep("Configuration Constants", function() {
 
 // Test 2: Check if credentials file exists
 testStep("Credentials File", function() {
-    $credentialsFile = __DIR__ . '/team_summary.txt';
+    $credentialsFile = __DIR__ . '/team_summary_ke.txt';
     if (file_exists($credentialsFile)) {
         $lines = file($credentialsFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         $found = [];
@@ -83,15 +83,15 @@ testStep("Credentials File", function() {
             if (strpos($line, 'Secret ID:') === 0) $found['secret_id'] = true;
         }
         return [
-            'file_exists' => '✅ team_summary.txt found',
+            'file_exists' => '✅ team_summary_ke.txt found',
             'client_id' => isset($found['client_id']) ? '✅ Client ID found' : '❌ Client ID missing',
             'client_secret' => isset($found['client_secret']) ? '✅ Client Secret found' : '❌ Client Secret missing',
             'secret_id' => isset($found['secret_id']) ? '✅ Secret ID found' : '❌ Secret ID missing'
         ];
     } else {
-        return "⚠️ team_summary.txt file not found. Using environment variables or default values.";
+        return "⚠️ team_summary_ke.txt file not found. Using environment variables or default values.";
     }
-}, "Checking if team_summary.txt credentials file exists and contains required fields");
+}, "Checking if team_summary_ke.txt credentials file exists and contains required fields");
 
 // Test 3: Check PHP extensions
 testStep("PHP Extensions", function() {
@@ -269,7 +269,7 @@ testStep("System Status Summary", function() {
         return [
             'status' => '❌ CRITICAL: Cannot authenticate with Microsoft Graph API',
             'recommendations' => [
-                '1. Verify Client ID and Client Secret in team_summary.txt or environment variables',
+                '1. Verify Client ID and Client Secret in team_summary_ke.txt or environment variables',
                 '2. Check if app is registered in Azure Active Directory',
                 '3. Ensure app has required permissions: Team.ReadBasic.All, Channel.ReadBasic.All',
                 '4. Verify admin consent has been granted for application permissions'
@@ -299,7 +299,7 @@ echo "<h3>🔧 Troubleshooting Guide</h3>";
 echo "<div class='info'>";
 echo "<h4>If you're seeing 'No Teams Data Available':</h4>";
 echo "<ol>";
-echo "<li><strong>Check Credentials:</strong> Ensure team_summary.txt exists with correct values</li>";
+echo "<li><strong>Check Credentials:</strong> Ensure team_summary_ke.txt exists with correct values</li>";
 echo "<li><strong>Azure App Registration:</strong> Verify app is registered in Azure AD</li>";
 echo "<li><strong>API Permissions:</strong> Required permissions:
     <ul>
@@ -311,7 +311,7 @@ echo "<li><strong>API Permissions:</strong> Required permissions:
     </ul>
 </li>";
 echo "<li><strong>Admin Consent:</strong> Click 'Grant admin consent' in Azure Portal</li>";
-echo "<li><strong>File Permissions:</strong> Ensure PHP can read team_summary.txt and create cache/ directory</li>";
+echo "<li><strong>File Permissions:</strong> Ensure PHP can read team_summary_ke.txt and create cache/ directory</li>";
 echo "</ol>";
 echo "</div>";
 echo "</div>";
@@ -319,7 +319,7 @@ echo "</div>";
 echo "<div class='section'>";
 echo "<h3>📁 Files to Check</h3>";
 echo "<ul>";
-echo "<li><strong>team_summary.txt:</strong> " . (file_exists(__DIR__ . '/team_summary.txt') ? '✅ Found' : '❌ Missing') . "</li>";
+echo "<li><strong>team_summary_ke.txt:</strong> " . (file_exists(__DIR__ . '/team_summary_ke.txt') ? '✅ Found' : '❌ Missing') . "</li>";
 echo "<li><strong>cache/ directory:</strong> " . (is_dir(__DIR__ . '/cache') ? '✅ Exists' : '❌ Missing - will be created automatically') . "</li>";
 echo "<li><strong>teams_config.php:</strong> " . (file_exists(__DIR__ . '/teams_config.php') ? '✅ Found' : '❌ Missing') . "</li>";
 echo "<li><strong>teams_api.php:</strong> " . (file_exists(__DIR__ . '/teams_api.php') ? '✅ Found' : '❌ Missing') . "</li>";

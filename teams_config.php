@@ -1,6 +1,6 @@
 <?php
 // Microsoft Teams API Configuration
-// Load credentials from environment variables or team_summary.txt file
+// Load credentials from environment variables or team_summary_ke.txt file
 
 // Try to load from environment variables first
 $clientId = getenv('TEAMS_CLIENT_ID');
@@ -8,9 +8,9 @@ $clientSecret = getenv('TEAMS_CLIENT_SECRET');
 $secretId = getenv('TEAMS_SECRET_ID');
 $tenantId = getenv('TEAMS_TENANT_ID');
 
-// If not found in environment, try to load from team_summary.txt
+// If not found in environment, try to load from team_summary_ke.txt
 if (!$clientId || !$clientSecret || !$tenantId) {
-    $credentialsFile = __DIR__ . '/team_summary.txt';
+    $credentialsFile = __DIR__ . '/team_summary_ke.txt';
     if (file_exists($credentialsFile)) {
         $lines = file($credentialsFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         foreach ($lines as $line) {

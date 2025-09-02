@@ -16,7 +16,7 @@ export TEAMS_SECRET_ID="your-secret-id-here"
 
 ### Option 2: Credentials File (Development)
 
-Create a file named `team_summary.txt` in the root directory with the following format:
+Create a file named `team_summary_ke.txt` in the root directory with the following format:
 
 ```
 Client ID: your-client-id-here
@@ -24,7 +24,7 @@ Client Secret: your-client-secret-here
 Secret ID: your-secret-id-here
 ```
 
-**Note**: The `team_summary.txt` file is excluded from git via `.gitignore` for security.
+**Note**: The `team_summary_ke.txt` file is excluded from git via `.gitignore` for security.
 
 ## Microsoft Graph API Setup
 

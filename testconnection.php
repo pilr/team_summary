@@ -22,8 +22,8 @@ if ($_POST) {
         $testResults = testTeamsConnection($clientId, $clientSecret, $tenantId);
     }
 } else {
-    // Try to load existing credentials from team_summary.txt
-    $credentialsFile = __DIR__ . '/team_summary.txt';
+    // Try to load existing credentials from team_summary_ke.txt
+    $credentialsFile = __DIR__ . '/team_summary_ke.txt';
     if (file_exists($credentialsFile)) {
         $lines = file($credentialsFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         foreach ($lines as $line) {
