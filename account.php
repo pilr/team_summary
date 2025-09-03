@@ -1,7 +1,14 @@
 <?php
+// Enable output buffering and compression for better performance
+ob_start();
+if (extension_loaded('zlib')) {
+    ob_start('ob_gzhandler');
+}
+
 session_start();
 require_once 'database_helper.php';
 require_once 'teams_config.php';
+require_once 'cache_helper.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -88,11 +95,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get user activity stats
+// Get user activity stats with caching
 try {
-    global $db;
-    $activity_stats = $db->getUserActivityStats($user_id);
-    $recent_activity = $db->getUserRecentActivity($user_id, 10);
+    global $db, $cache;
+    
+    // Cache activity stats for 5 minutes
+    $activity_stats = $cache->remember("user_activity_stats_$user_id", function() use ($db, $user_id) {
+        return $db->getUserActivityStats($user_id);
+    }, 300);
+    
+    // Cache recent activity for 2 minutes
+    $recent_activity = $cache->remember("user_recent_activity_$user_id", function() use ($db, $user_id) {
+        return $db->getUserRecentActivity($user_id, 10);
+    }, 120);
+    
 } catch (Exception $e) {
     // Mock data fallback if database unavailable
     $activity_stats = [
@@ -117,8 +133,25 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account - Teams Activity Dashboard</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="styles.css" rel="stylesheet">
+    
+    <!-- Performance optimizations -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://ui-avatars.com">
+    
+    <!-- Critical CSS inline -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #f8fafc; color: #1e293b; }
+        .app-container { display: flex; min-height: 100vh; }
+        .sidebar { width: 280px; background: linear-gradient(180deg, #1e40af, #1d4ed8); color: white; position: fixed; height: 100vh; }
+        .main-content { flex: 1; margin-left: 280px; background: #f8fafc; min-height: 100vh; }
+        .loading { opacity: 0.7; pointer-events: none; }
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .main-content { margin-left: 0; } }
+    </style>
+    
+    <!-- Load non-critical CSS asynchronously -->
+    <link rel="preload" href="styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="styles.css"></noscript>
 </head>
 <body>
     <div class="app-container">
@@ -127,7 +160,7 @@ try {
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="fas fa-comments"></i>
-                    <span>TeamSummary</span>
+                    <span>TeamsSummary</span>
                 </div>
             </div>
             <ul class="nav-menu">
@@ -183,7 +216,7 @@ try {
                         <i class="fas fa-cog"></i>
                     </button>
                     <div class="user-profile">
-                        <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($user_name); ?>&background=6366f1&color=fff" alt="User Avatar" class="user-avatar">
+                        <img data-src="https://ui-avatars.com/api/?name=<?php echo urlencode($user_name); ?>&background=6366f1&color=fff&format=svg" alt="User Avatar" class="user-avatar" loading="lazy">
                         <div class="user-info">
                             <span class="user-name"><?php echo htmlspecialchars($user_name); ?></span>
                             <span class="user-email"><?php echo htmlspecialchars($user_email); ?></span>
@@ -218,7 +251,7 @@ try {
                         <div class="card-content">
                             <div class="profile-header">
                                 <div class="profile-avatar">
-                                    <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($user_name); ?>&background=6366f1&color=fff&size=120" alt="Profile Avatar">
+                                    <img data-src="https://ui-avatars.com/api/?name=<?php echo urlencode($user_name); ?>&background=6366f1&color=fff&size=120&format=svg" alt="Profile Avatar" class="user-avatar" loading="lazy">
                                     <button class="avatar-upload-btn">
                                         <i class="fas fa-camera"></i>
                                     </button>
@@ -425,7 +458,25 @@ try {
     <!-- Mobile Navigation Overlay -->
     <div class="mobile-nav-overlay"></div>
 
-    <script src="script.js"></script>
+    <!-- Load JavaScript optimally -->
+    <script src="js/loader.js" defer></script>
+    <script>
+        // Load non-critical resources after page load
+        window.addEventListener('load', function() {
+            if (window.LoaderManager) {
+                LoaderManager.loadParallel([
+                    { type: 'css', src: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css', media: 'all' },
+                    { type: 'js', src: 'js/image-optimizer.js', defer: true },
+                    { type: 'js', src: 'script.js', defer: true }
+                ]).then(() => {
+                    // Initialize image optimization
+                    if (window.ImageOptimizer) {
+                        window.ImageOptimizer.init();
+                    }
+                });
+            }
+        });
+    </script>
     <script>
         // PHP data for JavaScript
         window.phpData = {

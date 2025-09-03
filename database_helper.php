@@ -26,6 +26,10 @@ class DatabaseHelper {
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES => false,
+                    // Performance optimizations
+                    PDO::ATTR_PERSISTENT => true, // Use persistent connections
+                    PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false, // Use unbuffered queries for large results
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET sql_mode='TRADITIONAL',time_zone='+00:00'", // Set consistent timezone
                 ]
             );
             return $pdo;

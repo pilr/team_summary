@@ -1,13 +1,21 @@
-// DOM Elements
-const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
-const sidebar = document.querySelector('.sidebar');
-const mobileNavOverlay = document.querySelector('.mobile-nav-overlay');
-const filterButtons = document.querySelectorAll('.filter-btn');
-const expandAllBtn = document.querySelector('.expand-all-btn');
-const channelCards = document.querySelectorAll('.channel-card');
-const refreshBtn = document.querySelector('.refresh-btn');
-const logTypeFilter = document.querySelector('.log-type-filter');
-const notificationBtn = document.querySelector('.notification-btn');
+// DOM Elements - Lazy loaded for performance
+let mobileMenuToggle, sidebar, mobileNavOverlay, filterButtons, expandAllBtn, 
+    channelCards, refreshBtn, logTypeFilter, notificationBtn;
+
+// Initialize DOM elements when needed
+function initDOMElements() {
+    if (!mobileMenuToggle) {
+        mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+        sidebar = document.querySelector('.sidebar');
+        mobileNavOverlay = document.querySelector('.mobile-nav-overlay');
+        filterButtons = document.querySelectorAll('.filter-btn');
+        expandAllBtn = document.querySelector('.expand-all-btn');
+        channelCards = document.querySelectorAll('.channel-card');
+        refreshBtn = document.querySelector('.refresh-btn');
+        logTypeFilter = document.querySelector('.log-type-filter');
+        notificationBtn = document.querySelector('.notification-btn');
+    }
+}
 
 // Mobile Navigation
 function toggleMobileNav() {
@@ -371,19 +379,43 @@ function setupScrollAnimations() {
     });
 }
 
-// Event Listeners
+// Event Listeners - Optimized with RequestIdleCallback
 document.addEventListener('DOMContentLoaded', function() {
     // Check authentication first
     if (!checkAuthStatus()) {
         return; // Stop initialization if redirecting
     }
     
-    // Mobile navigation
+    // Initialize DOM elements
+    initDOMElements();
+    
+    // Critical initialization first
+    initCriticalFeatures();
+    
+    // Use requestIdleCallback for non-critical features
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(initNonCriticalFeatures, { timeout: 2000 });
+    } else {
+        // Fallback for browsers without requestIdleCallback
+        setTimeout(initNonCriticalFeatures, 100);
+    }
+});
+
+function initCriticalFeatures() {
+    // Mobile navigation (critical for UX)
     mobileMenuToggle?.addEventListener('click', toggleMobileNav);
     mobileNavOverlay?.addEventListener('click', closeMobileNav);
     
+    // Keyboard navigation (accessibility)
+    document.addEventListener('keydown', handleKeyboardNavigation);
+    
+    // Update navigation state
+    updateNavigation();
+}
+
+function initNonCriticalFeatures() {
     // Filter buttons
-    filterButtons.forEach(button => {
+    filterButtons?.forEach(button => {
         button.addEventListener('click', handleFilterChange);
     });
     
@@ -395,9 +427,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Log filter
     logTypeFilter?.addEventListener('change', handleLogFilter);
-    
-    // Keyboard navigation
-    document.addEventListener('keydown', handleKeyboardNavigation);
     
     // Logout functionality
     document.querySelectorAll('.logout').forEach(logoutBtn => {
@@ -419,20 +448,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Initialize features
-    updateNavigation();
+    // Initialize non-critical features
     simulateRealTimeUpdates();
     updateNotificationCount();
     setupScrollAnimations();
+    addTouchSupport();
     
-    // Show welcome message
+    // Show welcome message (delayed)
     const currentPage = window.location.pathname.split('/').pop() || 'index.php';
     if (currentPage === 'index.php') {
         setTimeout(() => {
             showToast('Welcome to Teams Activity Dashboard!', 'success');
-        }, 1000);
+        }, 1500);
     }
-});
+}
 
 // Handle window resize
 window.addEventListener('resize', function() {
@@ -449,13 +478,43 @@ window.addEventListener('resize', function() {
 
 // Handle orientation change on mobile
 window.addEventListener('orientationchange', function() {
+    // Close mobile nav on orientation change
+    closeMobileNav();
+    
     setTimeout(() => {
         // Recalculate layouts after orientation change
         document.querySelectorAll('.channel-content.expanded').forEach(content => {
             content.style.maxHeight = content.scrollHeight + 'px';
         });
+        
+        // Adjust viewport height for mobile browsers
+        document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
     }, 100);
 });
+
+// Set initial viewport height
+document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+
+// Add touch event support for better mobile interaction
+function addTouchSupport() {
+    // Add touch class to body for CSS targeting
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        document.body.classList.add('touch-device');
+    }
+    
+    // Prevent double-tap zoom on buttons
+    document.querySelectorAll('button, .nav-link, .channel-header').forEach(element => {
+        element.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            // Trigger click after preventing default
+            setTimeout(() => {
+                if (this.click) {
+                    this.click();
+                }
+            }, 10);
+        });
+    });
+}
 
 // Add CSS animations for pulse effect
 const style = document.createElement('style');

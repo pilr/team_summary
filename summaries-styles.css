@@ -1029,10 +1029,25 @@ main.main-content .summaries-content {
 }
 
 /* Responsive Design */
+@media (max-width: 1200px) {
+    .summaries-content {
+        padding: 40px 32px 56px !important;
+        gap: 40px !important;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    
+    .summaries-grid {
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    }
+}
+
 @media (max-width: 1024px) {
     .summaries-content {
-        padding: 32px 24px 48px;
-        gap: 32px;
+        padding: 32px 24px 48px !important;
+        gap: 32px !important;
     }
     
     .summary-controls {
@@ -1053,10 +1068,18 @@ main.main-content .summaries-content {
     
     .summary-filters {
         width: 100%;
+        flex-direction: column;
+        gap: 12px;
     }
     
     .filter-select {
         flex: 1;
+        width: 100%;
+    }
+    
+    .generate-report-btn {
+        width: 100%;
+        justify-content: center;
     }
     
     .stats-grid {
@@ -1087,6 +1110,13 @@ main.main-content .summaries-content {
     
     .timeline-card .card-header {
         padding: 24px 28px 20px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .timeline-controls {
+        width: 100%;
+        justify-content: flex-start;
     }
     
     .timeline-card .card-content {
@@ -1096,113 +1126,19 @@ main.main-content .summaries-content {
 
 @media (max-width: 768px) {
     .summaries-content {
-        padding: 24px 20px 40px;
-        gap: 24px;
+        padding: 20px 16px 32px !important;
+        gap: 24px !important;
     }
     
     .date-range-picker {
         flex-wrap: wrap;
+        gap: 6px;
     }
     
     .date-preset {
-        padding: 10px 16px;
+        padding: 8px 14px;
         font-size: 13px;
-    }
-    
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .stat-card {
-        padding: 20px;
-        gap: 16px;
-    }
-    
-    .stat-icon {
-        width: 50px;
-        height: 50px;
-        font-size: 20px;
-    }
-    
-    .stat-number {
-        font-size: 28px;
-    }
-    
-    .timeline-item {
-        gap: 12px;
-    }
-    
-    .timeline-time {
-        width: 60px;
-        font-size: 11px;
-    }
-    
-    .timeline-item::before {
-        left: 48px;
-    }
-    
-    .summary-metrics {
-        flex-direction: column;
-        gap: 12px;
-    }
-    
-    .section-header {
-        flex-direction: column;
-        gap: 16px;
-        align-items: flex-start;
-    }
-    
-    .channel-header {
-        padding: 24px;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-    }
-    
-    .channel-stats {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .channel-description {
-        padding: 20px 24px;
-    }
-    
-    .channel-members {
-        padding: 24px;
-    }
-    
-    .channel-actions {
-        padding: 20px 24px;
-        flex-direction: column;
-    }
-    
-    .timeline-card .card-header {
-        padding: 20px 24px 16px;
-    }
-    
-    .timeline-card .card-content {
-        padding: 24px;
-    }
-    
-    .no-data-message {
-        padding: 60px 24px;
-    }
-    
-    /* Reduce section spacing on mobile */
-    .summary-stats-section + .timeline-section,
-    .timeline-section + .channels-members-section,
-    .channels-members-section + .summary-cards-section {
-        margin-top: 24px;
-    }
-}
-
-@media (max-width: 480px) {
-    .summary-controls {
-        gap: 16px;
-    }
-    
-    .date-preset {
+        min-width: 0;
         flex: 1;
         text-align: center;
     }
@@ -1212,34 +1148,621 @@ main.main-content .summaries-content {
         gap: 8px;
     }
     
+    .date-input {
+        width: 100%;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    .filter-select {
+        font-size: 16px; /* Prevent zoom on iOS */
+        padding: 10px 14px;
+    }
+    
+    .generate-report-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .stat-card {
+        padding: 18px;
+        gap: 14px;
+        flex-direction: row;
+        text-align: left;
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+    
+    .stat-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .stat-number {
+        font-size: 24px;
+        line-height: 1.2;
+    }
+    
+    .stat-label {
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    
+    .stat-change {
+        font-size: 11px;
+    }
+    
+    .timeline-item {
+        gap: 10px;
+        flex-direction: column;
+    }
+    
+    .timeline-time {
+        width: auto;
+        font-size: 11px;
+        text-align: left;
+        padding-top: 0;
+        order: 1;
+        background: #f1f5f9;
+        padding: 4px 8px;
+        border-radius: 6px;
+        align-self: flex-start;
+        font-weight: 700;
+    }
+    
     .timeline-content {
+        order: 2;
+        width: 100%;
+    }
+    
+    .timeline-item::before {
+        display: none;
+    }
+    
+    .timeline-header {
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    
+    .timeline-message {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    
+    .timeline-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .timeline-meeting-summary {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .meeting-stat {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .summary-metrics {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        display: grid;
+    }
+    
+    .metric {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: left;
         padding: 12px 16px;
+    }
+    
+    .metric-value {
+        font-size: 20px;
+        margin-bottom: 0;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    
+    .view-toggle {
+        align-self: flex-end;
+    }
+    
+    .channel-header {
+        padding: 20px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .channel-info {
+        width: 100%;
+    }
+    
+    .channel-stats {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .channel-description {
+        padding: 16px 20px;
+    }
+    
+    .channel-members {
+        padding: 20px;
+    }
+    
+    .channel-members h5 {
+        font-size: 14px;
+        margin-bottom: 12px;
+    }
+    
+    .member-item {
+        padding: 10px;
+    }
+    
+    .member-avatar {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .member-name {
+        font-size: 13px;
+    }
+    
+    .member-email {
+        font-size: 11px;
+    }
+    
+    .channel-actions {
+        padding: 16px 20px;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .btn {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+    
+    .timeline-card .card-header {
+        padding: 16px 20px 12px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .timeline-controls {
+        align-self: flex-end;
+    }
+    
+    .timeline-view {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+    
+    .timeline-card .card-content {
+        padding: 20px;
+    }
+    
+    .timeline {
+        padding: 16px 0;
+        gap: 20px;
+    }
+    
+    .summary-card-header {
+        padding: 16px 20px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .summary-time {
+        align-self: flex-end;
+    }
+    
+    .summary-card-content {
+        padding: 20px;
+        gap: 20px;
+    }
+    
+    .summary-highlights h4,
+    .summary-top-contributors h4 {
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+    
+    .summary-highlights li {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    
+    .contributor {
+        padding: 6px 10px;
+    }
+    
+    .contributor img {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .contributor span:first-of-type {
+        font-size: 13px;
+    }
+    
+    .message-count {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+    
+    .summary-card-footer {
+        padding: 14px 20px;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .action-btn {
+        padding: 10px;
+        font-size: 13px;
+    }
+    
+    .no-data-message {
+        padding: 40px 20px;
+    }
+    
+    .no-data-message i {
+        font-size: 36px;
+        margin-bottom: 16px;
+    }
+    
+    .no-data-message h4 {
+        font-size: 20px;
+        margin-bottom: 12px;
+    }
+    
+    .no-data-message p {
+        font-size: 14px;
+    }
+    
+    /* Reduce section spacing on mobile */
+    .summary-stats-section + .timeline-section,
+    .timeline-section + .channels-members-section,
+    .channels-members-section + .summary-cards-section {
+        margin-top: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .summaries-content {
+        padding: 16px 12px 28px !important;
+        gap: 20px !important;
+    }
+    
+    .summary-controls {
+        gap: 14px;
+    }
+    
+    .date-range-picker {
+        gap: 4px;
+    }
+    
+    .date-preset {
+        padding: 6px 10px;
+        font-size: 12px;
+        flex: 1;
+        text-align: center;
+    }
+    
+    .custom-date-inputs {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .date-input {
+        padding: 8px 12px;
+        font-size: 16px;
+    }
+    
+    .filter-select {
+        padding: 8px 12px;
+        font-size: 16px;
+    }
+    
+    .generate-report-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+    
+    .stat-card {
+        padding: 14px;
+        gap: 12px;
+    }
+    
+    .stat-icon {
+        width: 42px;
+        height: 42px;
+        font-size: 16px;
+    }
+    
+    .stat-number {
+        font-size: 20px;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+    }
+    
+    .stat-change {
+        font-size: 10px;
+    }
+    
+    .timeline-time {
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+    
+    .timeline-content {
+        padding: 10px 14px;
     }
     
     .timeline-header {
         flex-wrap: wrap;
         gap: 4px;
+        margin-bottom: 8px;
+    }
+    
+    .timeline-channel {
+        font-size: 13px;
+    }
+    
+    .timeline-badge {
+        padding: 3px 6px;
+        font-size: 9px;
+    }
+    
+    .timeline-message {
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+    
+    .timeline-attachment {
+        padding: 8px 12px;
+        margin-bottom: 8px;
+    }
+    
+    .timeline-meeting-summary {
+        padding: 12px;
+        margin-bottom: 8px;
     }
     
     .meeting-stat {
-        text-align: center;
+        text-align: left;
+        gap: 6px;
+    }
+    
+    .meeting-label {
+        font-size: 10px;
+    }
+    
+    .meeting-value {
+        font-size: 12px;
+    }
+    
+    .timeline-meta {
+        font-size: 11px;
+    }
+    
+    .timeline-card .card-header {
+        padding: 14px 16px 10px;
+        gap: 10px;
+    }
+    
+    .timeline-card .card-header h3 {
+        font-size: 16px;
+    }
+    
+    .timeline-view {
+        padding: 5px 10px;
+        font-size: 10px;
+    }
+    
+    .timeline-card .card-content {
+        padding: 16px;
+    }
+    
+    .timeline {
+        padding: 12px 0;
+        gap: 16px;
+    }
+    
+    .section-header h3 {
+        font-size: 18px;
+    }
+    
+    .metric {
+        padding: 10px 14px;
+    }
+    
+    .metric-value {
+        font-size: 18px;
+    }
+    
+    .metric-label {
+        font-size: 11px;
+    }
+    
+    .channel-header {
+        padding: 16px;
+        gap: 10px;
+    }
+    
+    .channel-details h4 {
+        font-size: 16px;
+    }
+    
+    .channel-details .team-name {
+        font-size: 12px;
+    }
+    
+    .member-count {
+        font-size: 12px;
+    }
+    
+    .membership-type {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+    
+    .channel-description {
+        padding: 14px 16px;
+    }
+    
+    .channel-description p {
+        font-size: 13px;
+    }
+    
+    .channel-members {
+        padding: 16px;
+    }
+    
+    .channel-members h5 {
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+    
+    .member-item {
+        padding: 8px;
+        gap: 8px;
+    }
+    
+    .member-avatar {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .member-name {
+        font-size: 12px;
+    }
+    
+    .member-email {
+        font-size: 10px;
+    }
+    
+    .channel-actions {
+        padding: 14px 16px;
+        gap: 8px;
+    }
+    
+    .btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    .summary-card-header {
+        padding: 14px 16px;
+        gap: 6px;
+    }
+    
+    .summary-channel {
+        font-size: 14px;
+    }
+    
+    .summary-time {
+        font-size: 11px;
     }
     
     .summary-card-content {
         padding: 16px;
+        gap: 16px;
+    }
+    
+    .summary-highlights h4,
+    .summary-top-contributors h4 {
+        font-size: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .summary-highlights li {
+        font-size: 12px;
+        line-height: 1.3;
+        padding-left: 16px;
+    }
+    
+    .contributors-list {
+        gap: 5px;
+    }
+    
+    .contributor {
+        padding: 5px 8px;
+        gap: 8px;
+    }
+    
+    .contributor img {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .contributor span:first-of-type {
+        font-size: 12px;
+    }
+    
+    .message-count {
+        font-size: 9px;
+        padding: 2px 5px;
     }
     
     .summary-card-footer {
         padding: 12px 16px;
         flex-direction: column;
-    }
-    
-    .contributors-list {
         gap: 6px;
     }
     
-    .contributor {
-        padding: 6px 8px;
+    .action-btn {
+        padding: 8px;
+        font-size: 12px;
+    }
+    
+    .no-data-message {
+        padding: 32px 16px;
+    }
+    
+    .no-data-message i {
+        font-size: 32px;
+        margin-bottom: 14px;
+    }
+    
+    .no-data-message h4 {
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+    
+    .no-data-message p {
+        font-size: 13px;
+    }
+    
+    /* Further reduce section spacing on very small screens */
+    .summary-stats-section + .timeline-section,
+    .timeline-section + .channels-members-section,
+    .channels-members-section + .summary-cards-section {
+        margin-top: 16px;
     }
 }
 

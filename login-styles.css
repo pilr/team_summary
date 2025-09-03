@@ -548,40 +548,102 @@ body {
 
 @media (max-width: 768px) {
     .login-container {
-        padding: 16px;
+        padding: 12px;
+        min-height: 100vh;
+        align-items: flex-start;
+        padding-top: 20px;
+    }
+    
+    .login-content {
+        min-height: auto;
+        width: 100%;
+        max-width: 480px;
     }
     
     .login-branding {
-        padding: 30px 20px;
+        padding: 24px 20px;
     }
     
     .login-form-container {
-        padding: 30px 20px;
+        padding: 24px 20px;
+    }
+    
+    .brand-logo {
+        margin-bottom: 24px;
     }
     
     .brand-logo h1 {
-        font-size: 24px;
+        font-size: 22px;
     }
     
     .brand-logo i {
-        font-size: 36px;
+        font-size: 32px;
+    }
+    
+    .brand-tagline {
+        margin-bottom: 24px;
     }
     
     .brand-tagline h2 {
         font-size: 18px;
+        margin-bottom: 12px;
+    }
+    
+    .brand-tagline p {
+        font-size: 14px;
+    }
+    
+    .login-header {
+        margin-bottom: 24px;
     }
     
     .login-header h3 {
-        font-size: 24px;
+        font-size: 22px;
+    }
+    
+    .login-header p {
+        font-size: 14px;
+    }
+    
+    .login-form {
+        gap: 20px;
+    }
+    
+    .input-wrapper input {
+        padding: 14px 14px 14px 42px;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    .login-btn {
+        padding: 14px;
+        font-size: 15px;
     }
     
     .feature-highlights {
         flex-direction: column;
+        gap: 12px;
+    }
+    
+    .feature-item {
+        padding: 12px 16px;
+    }
+    
+    .feature-item i {
+        font-size: 18px;
+    }
+    
+    .feature-item span {
+        font-size: 14px;
+    }
+    
+    .social-btn {
+        padding: 12px 14px;
+        font-size: 14px;
     }
     
     .demo-notice {
         position: static;
-        margin-top: 20px;
+        margin: 16px;
         transform: none;
     }
     
@@ -589,40 +651,200 @@ body {
         flex-direction: column;
         text-align: center;
         gap: 8px;
+        padding: 12px 16px;
+    }
+    
+    .demo-content span {
+        font-size: 13px;
     }
 }
 
 @media (max-width: 480px) {
-    .login-content {
-        border-radius: 16px;
+    .login-container {
+        padding: 8px;
+        padding-top: 16px;
     }
     
-    .login-branding,
+    .login-content {
+        border-radius: 16px;
+        max-width: 100%;
+    }
+    
+    .login-branding {
+        padding: 20px 16px;
+    }
+    
     .login-form-container {
-        padding: 24px 16px;
+        padding: 20px 16px;
+    }
+    
+    .brand-logo {
+        margin-bottom: 20px;
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+    
+    .brand-logo h1 {
+        font-size: 20px;
+    }
+    
+    .brand-logo i {
+        font-size: 28px;
+    }
+    
+    .brand-tagline {
+        margin-bottom: 20px;
     }
     
     .brand-tagline h2 {
         font-size: 16px;
+        margin-bottom: 10px;
+    }
+    
+    .brand-tagline p {
+        font-size: 13px;
+    }
+    
+    .login-header {
+        margin-bottom: 20px;
     }
     
     .login-header h3 {
         font-size: 20px;
     }
     
+    .login-header p {
+        font-size: 13px;
+    }
+    
+    .login-form {
+        gap: 16px;
+    }
+    
+    .form-group {
+        gap: 6px;
+    }
+    
+    .form-group label {
+        font-size: 13px;
+    }
+    
+    .input-wrapper input {
+        padding: 12px 12px 12px 38px;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    .input-wrapper i {
+        left: 12px;
+        font-size: 14px;
+    }
+    
+    .password-toggle {
+        right: 12px;
+    }
+    
     .form-options {
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
         align-items: flex-start;
     }
     
+    .checkbox-wrapper {
+        gap: 6px;
+    }
+    
+    .checkmark {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .checkbox-label {
+        font-size: 13px;
+    }
+    
+    .forgot-password {
+        font-size: 13px;
+    }
+    
+    .login-btn {
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    .divider {
+        margin: 20px 0;
+    }
+    
+    .divider span {
+        font-size: 13px;
+        padding: 0 12px;
+    }
+    
     .social-login {
-        gap: 8px;
+        gap: 6px;
     }
     
     .social-btn {
-        padding: 12px;
+        padding: 10px 12px;
         font-size: 13px;
+    }
+    
+    .social-btn i {
+        font-size: 16px;
+    }
+    
+    .feature-highlights {
+        gap: 10px;
+    }
+    
+    .feature-item {
+        padding: 10px 14px;
+        gap: 10px;
+    }
+    
+    .feature-item i {
+        font-size: 16px;
+        width: 20px;
+    }
+    
+    .feature-item span {
+        font-size: 13px;
+    }
+    
+    .login-footer {
+        margin-top: 24px;
+        padding-top: 20px;
+    }
+    
+    .login-footer p {
+        font-size: 13px;
+    }
+    
+    .demo-content {
+        padding: 10px 12px;
+        border-radius: 10px;
+    }
+    
+    .demo-content i {
+        font-size: 14px;
+    }
+    
+    .demo-content strong {
+        font-size: 13px;
+    }
+    
+    .demo-content span {
+        font-size: 12px;
+    }
+    
+    /* Handle very small screens */
+    .background-shape {
+        display: none; /* Hide animated shapes on very small screens for better performance */
+    }
+    
+    .login-branding::before {
+        opacity: 0.2; /* Reduce grid opacity */
     }
 }
 

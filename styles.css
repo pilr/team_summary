@@ -662,28 +662,58 @@ body {
 }
 
 /* Responsive Design */
+@media (max-width: 1200px) {
+    .dashboard-content {
+        padding: 24px 20px;
+        max-width: 100%;
+    }
+    
+    .top-bar {
+        padding: 16px 24px;
+    }
+}
+
 @media (max-width: 1024px) {
     .dashboard-content {
-        padding: 24px;
+        padding: 24px 16px;
     }
     
     .summary-stats {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 16px;
     }
     
     .stat-item {
-        padding: 16px;
+        padding: 16px 12px;
     }
     
     .stat-number {
-        font-size: 28px;
+        font-size: 26px;
+    }
+    
+    .top-bar-right {
+        gap: 12px;
+    }
+    
+    .user-profile {
+        padding: 6px 10px;
+    }
+    
+    .channel-header {
+        padding: 18px 20px;
+    }
+    
+    .card-header h2,
+    .card-header h3 {
+        font-size: 18px;
     }
 }
 
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
+        width: 280px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
     }
     
     .sidebar.mobile-open {
@@ -692,34 +722,70 @@ body {
     
     .main-content {
         margin-left: 0;
+        width: 100%;
     }
     
     .mobile-menu-toggle {
         display: block;
+        padding: 8px;
+        border-radius: 6px;
+    }
+    
+    .mobile-menu-toggle:hover {
+        background-color: #f1f5f9;
     }
     
     .top-bar {
-        padding: 16px 20px;
+        padding: 12px 16px;
     }
     
     .top-bar h1 {
-        font-size: 20px;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    
+    .top-bar-left {
+        gap: 12px;
+    }
+    
+    .top-bar-right {
+        gap: 8px;
     }
     
     .user-info {
         display: none;
     }
     
+    .user-profile {
+        padding: 4px 6px;
+        gap: 8px;
+    }
+    
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .notification-btn,
+    .settings-btn {
+        padding: 6px;
+        font-size: 14px;
+    }
+    
     .dashboard-content {
-        padding: 20px 16px;
+        padding: 16px 12px;
+    }
+    
+    .card {
+        border-radius: 12px;
     }
     
     .card-header {
-        padding: 20px 20px 0 20px;
+        padding: 16px 16px 0 16px;
     }
     
     .card-content {
-        padding: 20px;
+        padding: 16px;
     }
     
     .summary-stats {
@@ -727,57 +793,296 @@ body {
         gap: 12px;
     }
     
+    .stat-item {
+        padding: 16px;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    
+    .stat-number {
+        font-size: 24px;
+        min-width: 40px;
+    }
+    
+    .stat-label {
+        font-size: 14px;
+        flex: 1;
+    }
+    
     .filters {
         flex-wrap: wrap;
         gap: 8px;
+        margin-bottom: 20px;
     }
     
     .filter-btn {
-        padding: 10px 16px;
+        padding: 8px 16px;
         font-size: 14px;
+        border-radius: 8px;
+        flex: 1;
+        min-width: 80px;
+        text-align: center;
     }
     
     .section-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
-    }
-    
-    .channel-badges {
-        flex-wrap: wrap;
-    }
-    
-    .log-meta {
-        flex-direction: column;
-        gap: 4px;
-    }
-}
-
-@media (max-width: 480px) {
-    .top-bar-right {
-        gap: 8px;
-    }
-    
-    .card-header h2,
-    .card-header h3 {
-        font-size: 18px;
+        gap: 12px;
+        margin-bottom: 16px;
     }
     
     .section-header h3 {
         font-size: 20px;
     }
     
-    .channel-info {
+    .expand-all-btn {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+    
+    .channel-header {
+        padding: 16px;
         flex-wrap: wrap;
+        gap: 12px;
+    }
+    
+    .channel-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .channel-name {
+        font-size: 15px;
+    }
+    
+    .message-count {
+        font-size: 13px;
+    }
+    
+    .channel-badges {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .badge {
+        padding: 3px 8px;
+        font-size: 11px;
+    }
+    
+    .channel-content {
+        padding: 0 16px;
+    }
+    
+    .channel-content.expanded {
+        padding: 0 16px 16px 16px;
+    }
+    
+    .summary-item {
+        padding: 12px 0;
+    }
+    
+    .summary-meta {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .log-item {
+        padding: 12px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    
+    .log-content {
+        min-width: 0;
+    }
+    
+    .log-meta {
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+    }
+    
+    .log-status {
+        align-self: flex-start;
+        margin-top: 4px;
+    }
+    
+    /* Make summary text more readable on mobile */
+    .summary-text p {
+        font-size: 14px;
+        line-height: 1.6;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        width: 100vw;
+    }
+    
+    .top-bar {
+        padding: 10px 12px;
+    }
+    
+    .top-bar h1 {
+        font-size: 16px;
+    }
+    
+    .top-bar-right {
+        gap: 4px;
+    }
+    
+    .user-profile {
+        padding: 4px;
+    }
+    
+    .user-avatar {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .notification-btn,
+    .settings-btn {
+        padding: 4px;
+        font-size: 13px;
+    }
+    
+    .dashboard-content {
+        padding: 12px 8px;
+    }
+    
+    .card-header {
+        padding: 12px 12px 0 12px;
+    }
+    
+    .card-header h2,
+    .card-header h3 {
+        font-size: 16px;
+    }
+    
+    .card-content {
+        padding: 12px;
+    }
+    
+    .section-header h3 {
+        font-size: 18px;
+    }
+    
+    .stat-item {
+        padding: 12px;
+        gap: 12px;
+    }
+    
+    .stat-number {
+        font-size: 20px;
+        min-width: 35px;
+    }
+    
+    .stat-label {
+        font-size: 13px;
+    }
+    
+    .filter-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+        min-width: 70px;
+    }
+    
+    .channel-header {
+        padding: 12px;
+        flex-direction: column;
+        align-items: flex-start;
         gap: 8px;
+    }
+    
+    .channel-info {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .channel-name {
+        font-size: 14px;
     }
     
     .message-count {
         font-size: 12px;
     }
     
+    .channel-badges {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .expand-icon {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+    }
+    
+    .channel-content {
+        padding: 0 12px;
+    }
+    
+    .channel-content.expanded {
+        padding: 0 12px 12px 12px;
+    }
+    
+    .summary-item {
+        padding: 10px 0;
+    }
+    
+    .summary-item p {
+        font-size: 13px;
+    }
+    
+    .author {
+        font-size: 12px;
+    }
+    
     .log-item {
-        padding: 12px;
+        padding: 10px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .log-icon {
+        align-self: flex-start;
+    }
+    
+    .log-title {
+        font-size: 14px;
+    }
+    
+    .log-meta {
+        gap: 2px;
+        font-size: 12px;
+    }
+    
+    .log-status {
+        align-self: flex-end;
+        margin-top: 0;
+    }
+    
+    .summary-text p {
+        font-size: 13px;
+    }
+    
+    .daily-digest .card-header h2 {
+        font-size: 16px;
+    }
+    
+    .timestamp {
+        font-size: 12px;
+    }
+    
+    /* Better mobile toast positioning */
+    .toast {
+        right: 8px !important;
+        left: 8px !important;
+        width: auto !important;
     }
 }
 
@@ -806,7 +1111,117 @@ select:focus,
     outline-offset: 2px;
 }
 
+/* Touch-friendly interactive elements */
+@media (max-width: 768px) {
+    button,
+    .nav-link,
+    .channel-header,
+    .filter-btn {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .channel-header {
+        position: relative;
+        padding-right: 44px;
+    }
+    
+    /* Better mobile scrolling */
+    .sidebar {
+        -webkit-overflow-scrolling: touch;
+        overflow-y: auto;
+    }
+    
+    /* Prevent zoom on input focus */
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+}
+
+/* Loading states for better UX */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #6366f1;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* Smooth scrolling */
 html {
     scroll-behavior: smooth;
+    /* Use viewport units that work better on mobile */
+    height: 100%;
+    height: calc(var(--vh, 1vh) * 100);
+}
+
+body {
+    /* Better mobile text rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Touch device optimizations */
+.touch-device * {
+    /* Remove tap highlight */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+.touch-device button,
+.touch-device .nav-link,
+.touch-device .channel-header {
+    /* Prevent text selection on touch */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Better mobile performance */
+.sidebar,
+.channel-content,
+.mobile-nav-overlay {
+    /* Hardware acceleration for smooth animations */
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* Mobile keyboard handling */
+@media (max-width: 768px) {
+    /* Prevent layout shifts when virtual keyboard appears */
+    .main-content {
+        transition: none;
+    }
+    
+    /* Better mobile input handling */
+    input,
+    select,
+    textarea {
+        /* Prevent zoom on focus for iOS */
+        transform: scale(1);
+    }
 }
