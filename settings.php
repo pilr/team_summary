@@ -39,7 +39,16 @@ $default_settings = [
     'language' => 'en',
     'compact_view' => false,
     'show_read_messages' => true,
-    'auto_mark_read' => false
+    'auto_mark_read' => false,
+    'ai_summary_prompt' => 'Please analyze these Microsoft Teams messages and provide a comprehensive summary including:
+
+1. **Key Discussion Topics**: What are the main subjects being discussed?
+2. **Important Decisions**: Any decisions made or conclusions reached?
+3. **Action Items**: Tasks or follow-ups mentioned?
+4. **Team Activity**: Overall communication patterns and engagement?
+5. **Notable Mentions**: Important announcements or highlights?
+
+Format the response in clear sections with bullet points where appropriate.'
 ];
 
 // Load user settings
@@ -92,6 +101,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
                 
+            case 'update_ai_prompt':
+                $ai_summary_prompt = trim($_POST['ai_summary_prompt'] ?? '');
+                
+                if (empty($ai_summary_prompt)) {
+                    $error_message = 'AI summary prompt cannot be empty.';
+                } else {
+                    $new_settings = [
+                        'ai_summary_prompt' => $ai_summary_prompt
+                    ];
+                    
+                    try {
+                        global $db;
+                        $db->updateUserSettings($user_id, $new_settings);
+                        $settings = array_merge($settings, $new_settings);
+                        $success_message = 'AI summary prompt updated successfully.';
+                    } catch (Exception $e) {
+                        $error_message = 'Failed to update AI summary prompt.';
+                    }
+                }
+                break;
+                
             case 'update_general':
                 $new_settings = [
                     'timezone' => $_POST['timezone'] ?? 'America/New_York',
@@ -133,6 +163,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode($export_data, JSON_PRETTY_PRINT);
                 exit();
                 break;
+                
+            case 'update_ai_prompt':
+                $new_settings = [
+                    'ai_summary_prompt' => $_POST['ai_summary_prompt'] ?? $default_settings['ai_summary_prompt']
+                ];
+                
+                try {
+                    global $db;
+                    $db->updateUserSettings($user_id, $new_settings);
+                    $settings = array_merge($settings, $new_settings);
+                    $success_message = 'AI summary prompt updated successfully.';
+                } catch (Exception $e) {
+                    $error_message = 'Failed to update AI summary prompt.';
+                }
+                break;
         }
     }
 }
@@ -153,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="fas fa-comments"></i>
-                    <span>TeamSummary</span>
+                    <span>TeamsSummary</span>
                 </div>
             </div>
             <ul class="nav-menu">
@@ -248,6 +293,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button class="settings-tab" data-tab="general">
                         <i class="fas fa-cog"></i>
                         General
+                    </button>
+                    <button class="settings-tab" data-tab="ai-summary">
+                        <i class="fas fa-brain"></i>
+                        AI Summary
                     </button>
                     <button class="settings-tab" data-tab="privacy">
                         <i class="fas fa-shield-alt"></i>
@@ -448,6 +497,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </section>
 
+                <!-- AI Summary Settings -->
+                <section id="ai-summary-settings" class="settings-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-brain"></i> AI Summary Settings</h2>
+                        </div>
+                        <div class="card-content">
+                            <form method="POST" class="settings-form">
+                                <input type="hidden" name="action" value="update_ai_prompt">
+                                
+                                <div class="setting-group">
+                                    <h3>Custom AI Summary Prompt</h3>
+                                    <p class="setting-description">
+                                        Customize the prompt that will be sent to the AI when generating summaries of your Teams conversations.
+                                        This allows you to tailor the AI's analysis to focus on specific aspects that matter most to you.
+                                    </p>
+                                    
+                                    <div class="setting-item">
+                                        <label for="ai_summary_prompt" class="setting-title">AI Summary Prompt</label>
+                                        <div class="setting-description">
+                                            Use this prompt to guide the AI's analysis. You can ask it to focus on specific topics, 
+                                            formatting preferences, or particular insights you want highlighted.
+                                        </div>
+                                        <textarea 
+                                            id="ai_summary_prompt" 
+                                            name="ai_summary_prompt" 
+                                            class="form-control" 
+                                            rows="12" 
+                                            placeholder="Enter your custom AI prompt..."
+                                            style="font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.4;"
+                                        ><?php echo htmlspecialchars($settings['ai_summary_prompt']); ?></textarea>
+                                        
+                                        <div class="setting-hint">
+                                            <strong>Tips for effective prompts:</strong>
+                                            <ul>
+                                                <li>Be specific about what information you want highlighted</li>
+                                                <li>Request specific formatting (bullet points, sections, etc.)</li>
+                                                <li>Ask for action items, decisions, or key topics to be identified</li>
+                                                <li>Specify the tone and detail level you prefer</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i>
+                                            Save AI Prompt
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="resetToDefault()">
+                                            <i class="fas fa-undo"></i>
+                                            Reset to Default
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Privacy & Data Settings -->
                 <section id="privacy-settings" class="settings-section">
                     <div class="card">
@@ -485,6 +593,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                 </section>
+
+                <!-- AI Summary Settings -->
+                <section id="ai-summary-settings" class="settings-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-brain"></i> AI Summary Customization</h2>
+                        </div>
+                        <div class="card-content">
+                            <form method="POST" class="settings-form">
+                                <input type="hidden" name="action" value="update_ai_prompt">
+                                
+                                <div class="setting-group">
+                                    <h3>Custom AI Prompt</h3>
+                                    <div class="setting-item full-width">
+                                        <label class="setting-title">AI Summary Prompt</label>
+                                        <textarea 
+                                            name="ai_summary_prompt" 
+                                            class="ai-prompt-textarea" 
+                                            placeholder="Enter your custom AI summary prompt..."
+                                            rows="10"
+                                        ><?php echo htmlspecialchars($settings['ai_summary_prompt']); ?></textarea>
+                                        <span class="setting-description">
+                                            Customize how the AI analyzes and summarizes your Teams messages. 
+                                            Use clear instructions to get the most relevant insights.
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="setting-group">
+                                    <h3>Prompt Examples</h3>
+                                    <div class="prompt-examples">
+                                        <div class="example-prompt" data-prompt="Please analyze these Microsoft Teams messages and provide a brief summary focusing on:&#10;&#10;1. Key decisions made&#10;2. Action items assigned&#10;3. Important deadlines mentioned&#10;4. Overall team progress&#10;&#10;Keep the response concise and actionable.">
+                                            <h4>📊 Executive Summary Style</h4>
+                                            <p>Focus on decisions, action items, and deadlines</p>
+                                            <button type="button" class="btn-link use-example">Use This Example</button>
+                                        </div>
+                                        
+                                        <div class="example-prompt" data-prompt="Please create a detailed analysis of these Teams messages including:&#10;&#10;1. **Discussion Topics**: What subjects were covered?&#10;2. **Key Participants**: Who were the main contributors?&#10;3. **Technical Details**: Any technical discussions or solutions?&#10;4. **Follow-ups**: What needs to happen next?&#10;5. **Sentiment**: Overall team mood and engagement&#10;&#10;Provide specific examples where relevant.">
+                                            <h4>🔍 Detailed Analysis Style</h4>
+                                            <p>Comprehensive breakdown with technical details</p>
+                                            <button type="button" class="btn-link use-example">Use This Example</button>
+                                        </div>
+                                        
+                                        <div class="example-prompt" data-prompt="Summarize these Teams messages in simple bullet points:&#10;&#10;• Main topics discussed&#10;• Important announcements&#10;• Tasks mentioned&#10;• Questions asked&#10;• Next steps&#10;&#10;Keep it short and easy to scan.">
+                                            <h4>📝 Bullet Point Style</h4>
+                                            <p>Simple, scannable format</p>
+                                            <button type="button" class="btn-link use-example">Use This Example</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="setting-actions">
+                                    <button type="button" class="btn btn-secondary" onclick="resetToDefault()">Reset to Default</button>
+                                    <button type="submit" class="btn btn-primary">Save AI Prompt</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -512,11 +679,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     // Remove active class from all tabs and sections
                     tabs.forEach(t => t.classList.remove('active'));
-                    sections.forEach(s => s.classList.remove('active'));
+                    sections.forEach(s => {
+                        s.classList.remove('active');
+                        s.style.display = 'none';
+                    });
 
                     // Add active class to clicked tab and corresponding section
                     this.classList.add('active');
-                    document.getElementById(targetTab + '-settings').classList.add('active');
+                    const targetSection = document.getElementById(targetTab + '-settings');
+                    if (targetSection) {
+                        targetSection.style.display = 'block';
+                        targetSection.classList.add('active');
+                    }
+                });
+            });
+
+            // AI Prompt functionality
+            document.querySelectorAll('.use-example').forEach(button => {
+                button.addEventListener('click', function() {
+                    const promptData = this.closest('.example-prompt').getAttribute('data-prompt');
+                    const decodedPrompt = promptData.replace(/&#10;/g, '\n');
+                    document.querySelector('.ai-prompt-textarea').value = decodedPrompt;
+                    
+                    // Visual feedback
+                    this.textContent = 'Applied!';
+                    this.style.color = '#10b981';
+                    setTimeout(() => {
+                        this.textContent = 'Use This Example';
+                        this.style.color = '';
+                    }, 2000);
                 });
             });
 
@@ -531,6 +722,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }, 5000);
             });
         });
+        
+        // Function to reset AI prompt to default
+        function resetToDefault() {
+            const defaultPrompt = `<?php echo addslashes($default_settings['ai_summary_prompt']); ?>`;
+            const textarea = document.getElementById('ai_summary_prompt');
+            
+            if (confirm('Are you sure you want to reset the AI prompt to the default? This will overwrite your current custom prompt.')) {
+                textarea.value = defaultPrompt;
+                // Auto-resize textarea if needed
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            }
+        }
     </script>
 
     <style>
@@ -774,6 +978,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             .theme-preview {
                 flex-direction: row;
                 padding: 0.75rem;
+            }
+        }
+
+        /* AI Prompt Settings Styles */
+        .ai-prompt-textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            background: var(--surface-color);
+            transition: border-color 0.2s ease;
+        }
+
+        .ai-prompt-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            background: white;
+        }
+
+        .setting-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .prompt-examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .example-prompt {
+            background: var(--surface-hover);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .example-prompt:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .example-prompt h4 {
+            margin: 0 0 8px 0;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .example-prompt p {
+            margin: 0 0 12px 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .btn-link {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 4px 0;
+            transition: color 0.2s ease;
+        }
+
+        .btn-link:hover {
+            color: var(--primary-hover);
+        }
+
+        .setting-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-secondary {
+            background: var(--surface-hover);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+            transform: translateY(-1px);
+        }
+
+        /* Mobile responsive for AI settings */
+        @media (max-width: 768px) {
+            .prompt-examples {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .example-prompt {
+                padding: 16px;
+            }
+
+            .setting-actions {
+                flex-direction: column;
+            }
+
+            .ai-prompt-textarea {
+                font-size: 16px; /* Prevent zoom on iOS */
             }
         }
     </style>

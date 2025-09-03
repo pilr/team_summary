@@ -215,7 +215,7 @@ $delivery_logs = [
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="fas fa-comments"></i>
-                    <span>TeamSummary</span>
+                    <span>TeamsSummary</span>
                 </div>
             </div>
             <ul class="nav-menu">

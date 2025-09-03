@@ -48,6 +48,8 @@ if ($user_is_connected) {
 $date_range = $_GET['range'] ?? 'today';
 $channel_filter = $_GET['channel'] ?? 'all';
 $type_filter = $_GET['type'] ?? 'all';
+$custom_start = $_GET['start'] ?? '';
+$custom_end = $_GET['end'] ?? '';
 
 // Get channels from Teams API (real-time, no cache)
 $channels = $teamsAPI->getAllChannels();
@@ -58,8 +60,66 @@ if ($is_user_connected && empty($channels)) {
     $has_permissions_issue = testTeamsPermissionsIssue($user_id);
 }
 
+// Helper function to get date range based on filter
+function getDateRange($date_range, $custom_start = '', $custom_end = '') {
+    $now = new DateTime();
+    $startDate = null;
+    $endDate = null;
+    
+    switch ($date_range) {
+        case 'today':
+            $startDate = new DateTime('today');
+            $endDate = new DateTime('today 23:59:59');
+            break;
+        case 'week':
+            $startDate = new DateTime('monday this week');
+            $endDate = new DateTime('sunday this week 23:59:59');
+            break;
+        case 'month':
+            $startDate = new DateTime('first day of this month');
+            $endDate = new DateTime('last day of this month 23:59:59');
+            break;
+        case 'custom':
+            if ($custom_start && $custom_end) {
+                try {
+                    $startDate = new DateTime($custom_start);
+                    $endDate = new DateTime($custom_end . ' 23:59:59');
+                } catch (Exception $e) {
+                    // Fallback to today if custom dates are invalid
+                    $startDate = new DateTime('today');
+                    $endDate = new DateTime('today 23:59:59');
+                }
+            } else {
+                // Fallback to today if custom dates not provided
+                $startDate = new DateTime('today');
+                $endDate = new DateTime('today 23:59:59');
+            }
+            break;
+        default:
+            // Default to today if unknown range
+            $startDate = new DateTime('today');
+            $endDate = new DateTime('today 23:59:59');
+    }
+    
+    return ['start' => $startDate, 'end' => $endDate];
+}
+
+// Helper function to check if message is within date range
+function isMessageInDateRange($message, $startDate, $endDate) {
+    if (!isset($message['createdDateTime'])) {
+        return false;
+    }
+    
+    try {
+        $messageDate = new DateTime($message['createdDateTime']);
+        return $messageDate >= $startDate && $messageDate < $endDate;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
 // Get real statistics data based on filters
-function getStatistics($channel_filter, $type_filter, $teamsAPI, $channels) {
+function getStatistics($channel_filter, $type_filter, $date_range, $teamsAPI, $channels) {
     $stats = [
         'total_messages' => 0,
         'urgent_messages' => 0,
@@ -70,6 +130,11 @@ function getStatistics($channel_filter, $type_filter, $teamsAPI, $channels) {
     if (empty($channels)) {
         return $stats;
     }
+    
+    // Get date range for filtering
+    $dateRange = getDateRange($date_range, $custom_start, $custom_end);
+    $startDate = $dateRange['start'];
+    $endDate = $dateRange['end'];
     
     // If specific channel is selected, get data for that channel only
     if ($channel_filter !== 'all') {
@@ -83,12 +148,19 @@ function getStatistics($channel_filter, $type_filter, $teamsAPI, $channels) {
         
         if ($selectedChannel) {
             $messages = $teamsAPI->getChannelMessages($selectedChannel['teamId'], $selectedChannel['id'], 100);
-            $messageCount = count($messages);
+            $messageCount = 0;
             $urgentCount = 0;
             $mentionCount = 0;
             $fileCount = 0;
             
             foreach ($messages as $message) {
+                // Filter by date range
+                if (!isMessageInDateRange($message, $startDate, $endDate)) {
+                    continue;
+                }
+                
+                $messageCount++;
+                
                 // Check for urgent indicators
                 if (isset($message['importance']) && $message['importance'] === 'high') {
                     $urgentCount++;
@@ -112,9 +184,15 @@ function getStatistics($channel_filter, $type_filter, $teamsAPI, $channels) {
         // Get aggregated data for all channels
         foreach ($channels as $channel) {
             $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 50);
-            $stats['total_messages'] += count($messages);
             
             foreach ($messages as $message) {
+                // Filter by date range
+                if (!isMessageInDateRange($message, $startDate, $endDate)) {
+                    continue;
+                }
+                
+                $stats['total_messages']++;
+                
                 if (isset($message['importance']) && $message['importance'] === 'high') {
                     $stats['urgent_messages']++;
                 }
@@ -131,15 +209,20 @@ function getStatistics($channel_filter, $type_filter, $teamsAPI, $channels) {
     return $stats;
 }
 
-$statistics = getStatistics($channel_filter, $type_filter, $teamsAPI, $channels);
+$statistics = getStatistics($channel_filter, $type_filter, $date_range, $teamsAPI, $channels);
 
 // Get real timeline data from selected channels
-function getTimelineItems($channel_filter, $teamsAPI, $channels, $limit = 10) {
+function getTimelineItems($channel_filter, $date_range, $teamsAPI, $channels, $limit = 10) {
     $timelineItems = [];
     
     if (empty($channels)) {
         return $timelineItems;
     }
+    
+    // Get date range for filtering
+    $dateRange = getDateRange($date_range, $custom_start, $custom_end);
+    $startDate = $dateRange['start'];
+    $endDate = $dateRange['end'];
     
     if ($channel_filter !== 'all') {
         // Get messages from selected channel only
@@ -152,8 +235,17 @@ function getTimelineItems($channel_filter, $teamsAPI, $channels, $limit = 10) {
         }
         
         if ($selectedChannel) {
-            $messages = $teamsAPI->getChannelMessages($selectedChannel['teamId'], $selectedChannel['id'], $limit);
+            $messages = $teamsAPI->getChannelMessages($selectedChannel['teamId'], $selectedChannel['id'], $limit * 2); // Get more messages to account for filtering
             foreach ($messages as $message) {
+                // Filter by date range
+                if (!isMessageInDateRange($message, $startDate, $endDate)) {
+                    continue;
+                }
+                
+                if (count($timelineItems) >= $limit) {
+                    break;
+                }
+                
                 $timelineItems[] = [
                     'time' => date('g:i A', strtotime($message['createdDateTime'])),
                     'date' => date('Y-m-d', strtotime($message['createdDateTime'])),
@@ -170,8 +262,21 @@ function getTimelineItems($channel_filter, $teamsAPI, $channels, $limit = 10) {
         // Get messages from all channels (limited to avoid too many API calls)
         $channelsToCheck = array_slice($channels, 0, 5); // Limit to first 5 channels
         foreach ($channelsToCheck as $channel) {
-            $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 3);
+            if (count($timelineItems) >= $limit) {
+                break;
+            }
+            
+            $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 10); // Get more for filtering
             foreach ($messages as $message) {
+                // Filter by date range
+                if (!isMessageInDateRange($message, $startDate, $endDate)) {
+                    continue;
+                }
+                
+                if (count($timelineItems) >= $limit) {
+                    break 2; // Break out of both loops
+                }
+                
                 $timelineItems[] = [
                     'time' => date('g:i A', strtotime($message['createdDateTime'])),
                     'date' => date('Y-m-d', strtotime($message['createdDateTime'])),
@@ -195,22 +300,27 @@ function getTimelineItems($channel_filter, $teamsAPI, $channels, $limit = 10) {
 }
 
 // Get real timeline data
-$timeline_items = getTimelineItems($channel_filter, $teamsAPI, $channels, 15);
+$timeline_items = getTimelineItems($channel_filter, $date_range, $teamsAPI, $channels, 15);
 
 // Generate real summary cards from Teams API data
-function generateSummaryCards($channels, $teamsAPI, $channel_filter) {
+function generateSummaryCards($channels, $teamsAPI, $channel_filter, $date_range) {
     $summary_cards = [];
     
     if (empty($channels)) {
         return $summary_cards;
     }
     
+    // Get date range for filtering
+    $dateRange = getDateRange($date_range, $custom_start, $custom_end);
+    $startDate = $dateRange['start'];
+    $endDate = $dateRange['end'];
+    
     // Get up to 6 channels for summary cards
     $channelsToSummarize = array_slice($channels, 0, 6);
     
     foreach ($channelsToSummarize as $channel) {
         $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 100);
-        $messageCount = count($messages);
+        $messageCount = 0;
         
         $urgentCount = 0;
         $mentionCount = 0;
@@ -218,6 +328,12 @@ function generateSummaryCards($channels, $teamsAPI, $channel_filter) {
         $recentMessages = [];
         
         foreach ($messages as $message) {
+            // Filter by date range
+            if (!isMessageInDateRange($message, $startDate, $endDate)) {
+                continue;
+            }
+            
+            $messageCount++;
             // Count urgent messages
             if (isset($message['importance']) && $message['importance'] === 'high') {
                 $urgentCount++;
@@ -307,7 +423,7 @@ function generateSummaryCards($channels, $teamsAPI, $channel_filter) {
 }
 
 // Generate real summary cards from API data
-$summary_cards = generateSummaryCards($channels, $teamsAPI, $channel_filter);
+$summary_cards = generateSummaryCards($channels, $teamsAPI, $channel_filter, $date_range);
 
 /**
  * Test if the issue is permissions-related (403 Forbidden)
@@ -635,7 +751,7 @@ function getBadgeText($type) {
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="fas fa-comments"></i>
-                    <span>TeamSummary</span>
+                    <span>TeamsSummary</span>
                 </div>
             </div>
             <ul class="nav-menu">
@@ -713,9 +829,15 @@ function getBadgeText($type) {
                             <button class="date-preset <?php echo $date_range === 'custom' ? 'active' : ''; ?>" data-range="custom">Custom Range</button>
                         </div>
                         <div class="custom-date-inputs" style="display: <?php echo $date_range === 'custom' ? 'flex' : 'none'; ?>;">
-                            <input type="date" id="startDate" class="date-input" value="<?php echo date('Y-m-d'); ?>">
+                            <?php
+                            // Calculate current date range for display
+                            $current_range = getDateRange($date_range, $custom_start, $custom_end);
+                            $display_start = $current_range['start']->format('Y-m-d');
+                            $display_end = $current_range['end']->format('Y-m-d');
+                            ?>
+                            <input type="date" id="startDate" class="date-input" value="<?php echo $display_start; ?>">
                             <span class="date-separator">to</span>
-                            <input type="date" id="endDate" class="date-input" value="<?php echo date('Y-m-d'); ?>">
+                            <input type="date" id="endDate" class="date-input" value="<?php echo $display_end; ?>">
                         </div>
                     </div>
                     <div class="controls-right">
@@ -1425,6 +1547,97 @@ function getBadgeText($type) {
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
                 });
+        }
+        
+        // Date filter functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const datePresetButtons = document.querySelectorAll('.date-preset');
+            
+            datePresetButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const selectedRange = this.getAttribute('data-range');
+                    const currentUrl = new URL(window.location);
+                    
+                    // Update the range parameter
+                    currentUrl.searchParams.set('range', selectedRange);
+                    
+                    // Keep other filters
+                    if (currentUrl.searchParams.get('channel')) {
+                        currentUrl.searchParams.set('channel', currentUrl.searchParams.get('channel'));
+                    }
+                    if (currentUrl.searchParams.get('type')) {
+                        currentUrl.searchParams.set('type', currentUrl.searchParams.get('type'));
+                    }
+                    
+                    // Show loading indicator
+                    showLoadingIndicator();
+                    
+                    // Reload the page with new filter
+                    window.location.href = currentUrl.toString();
+                });
+            });
+            
+            // Custom date range functionality
+            const customDateButton = document.querySelector('[data-range="custom"]');
+            const customDateInputs = document.querySelector('.custom-date-inputs');
+            
+            if (customDateButton && customDateInputs) {
+                customDateButton.addEventListener('click', function() {
+                    const isActive = this.classList.contains('active');
+                    
+                    // Remove active class from all buttons
+                    datePresetButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    if (!isActive) {
+                        // Show custom date inputs
+                        this.classList.add('active');
+                        customDateInputs.style.display = 'flex';
+                    } else {
+                        // Hide custom date inputs
+                        customDateInputs.style.display = 'none';
+                    }
+                });
+            }
+        });
+        
+        // Show loading indicator when filters change
+        function showLoadingIndicator() {
+            // Create a loading overlay
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'loading-overlay';
+            loadingOverlay.innerHTML = `
+                <div class="loading-content">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Updating data...</p>
+                </div>
+            `;
+            
+            // Add to body
+            document.body.appendChild(loadingOverlay);
+            
+            // Style the overlay
+            loadingOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(255, 255, 255, 0.9);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                backdrop-filter: blur(2px);
+            `;
+            
+            const loadingContent = loadingOverlay.querySelector('.loading-content');
+            loadingContent.style.cssText = `
+                text-align: center;
+                padding: 2rem;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            `;
         }
     </script>
     

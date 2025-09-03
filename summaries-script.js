@@ -29,6 +29,55 @@ document.addEventListener('DOMContentLoaded', function() {
     startRealTimeUpdates();
 });
 
+// Setup event listeners
+function setupEventListeners() {
+    // Date preset buttons
+    datePresetButtons.forEach(button => {
+        button.addEventListener('click', handleDatePresetChange);
+    });
+    
+    // Custom date inputs
+    if (startDateInput) {
+        startDateInput.addEventListener('change', () => {
+            // Remove active from preset buttons when custom dates are used
+            datePresetButtons.forEach(btn => btn.classList.remove('active'));
+            loadSummaryData();
+        });
+    }
+    
+    if (endDateInput) {
+        endDateInput.addEventListener('change', () => {
+            // Remove active from preset buttons when custom dates are used
+            datePresetButtons.forEach(btn => btn.classList.remove('active'));
+            loadSummaryData();
+        });
+    }
+    
+    // Filter dropdowns
+    if (channelFilter) {
+        channelFilter.addEventListener('change', handleFilterChange);
+    }
+    
+    if (typeFilter) {
+        typeFilter.addEventListener('change', handleFilterChange);
+    }
+    
+    // Generate report button
+    if (generateReportBtn) {
+        generateReportBtn.addEventListener('click', generateReport);
+    }
+    
+    // Timeline view buttons
+    timelineViews.forEach(btn => {
+        btn.addEventListener('click', handleTimelineViewChange);
+    });
+    
+    // View toggle buttons
+    viewButtons.forEach(btn => {
+        btn.addEventListener('click', handleViewToggle);
+    });
+}
+
 // Date Range Handling
 function handleDatePresetChange(event) {
     const range = event.target.getAttribute('data-range');
@@ -57,26 +106,45 @@ function setDateRange(range) {
     switch (range) {
         case 'today':
             startDate = new Date(today);
+            startDate.setHours(0, 0, 0, 0);
             endDate = new Date(today);
+            endDate.setHours(23, 59, 59, 999);
             break;
         case 'week':
-            startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            // Get Monday of current week
+            const dayOfWeek = today.getDay();
+            const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - daysToMonday);
+            startDate.setHours(0, 0, 0, 0);
             endDate = new Date(today);
+            endDate.setHours(23, 59, 59, 999);
             break;
         case 'month':
             startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            startDate.setHours(0, 0, 0, 0);
             endDate = new Date(today);
+            endDate.setHours(23, 59, 59, 999);
             break;
+        case 'custom':
+            // Don't set dates for custom, let user pick
+            return;
     }
     
-    startDateInput.value = formatDateForInput(startDate);
-    endDateInput.value = formatDateForInput(endDate);
+    if (startDateInput && endDateInput) {
+        startDateInput.value = formatDateForInput(startDate);
+        endDateInput.value = formatDateForInput(endDate);
+    }
 }
 
 function setDefaultDates() {
-    const today = new Date();
-    startDateInput.value = formatDateForInput(today);
-    endDateInput.value = formatDateForInput(today);
+    // Set default to today
+    setDateRange('today');
+    
+    // Set the first preset button as active
+    if (datePresetButtons.length > 0) {
+        datePresetButtons[0].classList.add('active');
+    }
 }
 
 function formatDateForInput(date) {
@@ -98,6 +166,174 @@ function handleFilterChange() {
     updateTimeline(channel, type);
     
     showToast(`Filters applied: ${channel === 'all' ? 'All Channels' : channel}, ${type === 'all' ? 'All Types' : type}`, 'info');
+}
+
+// Load summary data based on current filters
+function loadSummaryData() {
+    const startDate = startDateInput?.value;
+    const endDate = endDateInput?.value;
+    const channel = channelFilter?.value || 'all';
+    const type = typeFilter?.value || 'all';
+    
+    if (!startDate || !endDate) {
+        console.warn('Start date or end date not set');
+        return;
+    }
+    
+    // Build query parameters
+    const params = new URLSearchParams({
+        range: 'custom',
+        start: startDate,
+        end: endDate,
+        channel: channel,
+        type: type
+    });
+    
+    // Reload the page with new parameters
+    window.location.href = `summaries.php?${params.toString()}`;
+}
+
+// Generate report
+function generateReport() {
+    const startDate = startDateInput?.value;
+    const endDate = endDateInput?.value;
+    const channel = channelFilter?.value || 'all';
+    const type = typeFilter?.value || 'all';
+    
+    if (!startDate || !endDate) {
+        showToast('Please select a date range first', 'warning');
+        return;
+    }
+    
+    // Show loading state
+    generateReportBtn.disabled = true;
+    generateReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    
+    // Build API endpoint
+    const params = new URLSearchParams({
+        range: 'custom',
+        start: startDate,
+        end: endDate,
+        channel: channel,
+        type: type,
+        action: 'generate_report'
+    });
+    
+    // Make API call or redirect to report generation
+    fetch(`api/generate_summary.php?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Report generated successfully!', 'success');
+                // Optionally download or display the report
+                if (data.download_url) {
+                    window.open(data.download_url, '_blank');
+                }
+            } else {
+                showToast('Failed to generate report: ' + (data.error || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error generating report:', error);
+            showToast('Error generating report', 'error');
+        })
+        .finally(() => {
+            // Reset button state
+            generateReportBtn.disabled = false;
+            generateReportBtn.innerHTML = '<i class="fas fa-file-download"></i> Generate Report';
+        });
+}
+
+// Handle timeline view changes
+function handleTimelineViewChange(event) {
+    timelineViews.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    const view = event.target.getAttribute('data-view');
+    // Implement timeline view switching logic here
+    showToast(`Timeline view: ${view}`, 'info');
+}
+
+// Handle view toggle (grid/list)
+function handleViewToggle(event) {
+    viewButtons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    const view = event.target.getAttribute('data-view');
+    const grid = document.querySelector('.summaries-grid');
+    
+    if (grid) {
+        if (view === 'list') {
+            grid.classList.add('list-view');
+        } else {
+            grid.classList.remove('list-view');
+        }
+    }
+    
+    showToast(`View: ${view}`, 'info');
+}
+
+// Real-time updates (simplified for demo)
+function startRealTimeUpdates() {
+    // Check for updates every 30 seconds
+    setInterval(() => {
+        // In a real implementation, you would check for new data
+        // For now, just update timestamps
+        updateTimestamps();
+    }, 30000);
+}
+
+// Update relative timestamps
+function updateTimestamps() {
+    document.querySelectorAll('.timestamp').forEach(element => {
+        const datetime = element.getAttribute('datetime');
+        if (datetime) {
+            element.textContent = formatRelativeTime(new Date(datetime));
+        }
+    });
+}
+
+// Format relative time
+function formatRelativeTime(date) {
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    
+    return date.toLocaleDateString();
+}
+
+// Show toast notification
+function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(toast);
+    
+    // Show toast
+    setTimeout(() => toast.classList.add('show'), 100);
+    
+    // Auto hide after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => document.body.removeChild(toast), 300);
+    }, 3000);
 }
 
 function filterSummaryCards(channel, type) {

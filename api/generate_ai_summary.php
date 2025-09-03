@@ -62,6 +62,25 @@ try {
     
     $teamsAPI = $userTeamsAPI;
     
+    // Get user's custom AI prompt from settings
+    require_once '../database_helper.php';
+    $dbHelper = new DatabaseHelper();
+    $user_settings = $dbHelper->getUserSettings($user_id);
+    
+    // Default AI prompt if user hasn't customized it
+    $defaultPrompt = 'Please analyze these Microsoft Teams messages and provide a comprehensive summary including:
+
+1. **Key Discussion Topics**: What are the main subjects being discussed?
+2. **Important Decisions**: Any decisions made or conclusions reached?
+3. **Action Items**: Tasks or follow-ups mentioned?
+4. **Team Activity**: Overall communication patterns and engagement?
+5. **Notable Mentions**: Important announcements or highlights?
+
+Format the response in clear sections with bullet points where appropriate.';
+    
+    $customPrompt = $user_settings['ai_summary_prompt'] ?? $defaultPrompt;
+    error_log("AI Summary: Using custom prompt for user $user_id (length: " . strlen($customPrompt) . " chars)");
+    
     // Get all channels
     $channels = $teamsAPI->getAllChannels();
     
@@ -127,15 +146,8 @@ try {
         $messageText = substr($messageText, 0, 8000) . "... (truncated)";
     }
     
-    // Call OpenAI API
-    $prompt = "Please analyze these Microsoft Teams messages and provide a comprehensive summary including:\n\n" .
-              "1. **Key Discussion Topics**: What are the main subjects being discussed?\n" .
-              "2. **Important Decisions**: Any decisions made or conclusions reached?\n" .
-              "3. **Action Items**: Tasks or follow-ups mentioned?\n" .
-              "4. **Team Activity**: Overall communication patterns and engagement?\n" .
-              "5. **Notable Mentions**: Important announcements or highlights?\n\n" .
-              "Format the response in clear sections with bullet points where appropriate.\n\n" .
-              "Messages:\n" . $messageText;
+    // Call OpenAI API using custom prompt
+    $prompt = $customPrompt . "\n\nMessages:\n" . $messageText;
     
     $postData = json_encode([
         'model' => 'gpt-4o-mini',
