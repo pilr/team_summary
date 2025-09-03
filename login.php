@@ -94,7 +94,7 @@ $remembered_email = $_COOKIE['remember_email'] ?? '';
             <div class="login-branding">
                 <div class="brand-logo">
                     <i class="fas fa-comments"></i>
-                    <h1>TeamSummary</h1>
+                    <h1>TeamsSummary</h1>
                 </div>
                 <div class="brand-tagline">
                     <h2>Stay on top of your Teams activity</h2>
@@ -191,16 +191,6 @@ $remembered_email = $_COOKIE['remember_email'] ?? '';
             </div>
         </div>
         
-        <!-- Database Login Notice -->
-        <div class="demo-notice">
-            <div class="demo-content">
-                <i class="fas fa-database"></i>
-                <div>
-                    <strong>Database Authentication:</strong>
-                    <span>Please use valid credentials from the database</span>
-                </div>
-            </div>
-        </div>
     </div>
     
     <!-- Temporarily disable custom JavaScript to test form submission -->
