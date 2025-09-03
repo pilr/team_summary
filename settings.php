@@ -523,10 +523,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <textarea 
                                             id="ai_summary_prompt" 
                                             name="ai_summary_prompt" 
-                                            class="form-control" 
+                                            class="ai-prompt-textarea" 
                                             rows="12" 
                                             placeholder="Enter your custom AI prompt..."
-                                            style="font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.4;"
                                         ><?php echo htmlspecialchars($settings['ai_summary_prompt']); ?></textarea>
                                         
                                         <div class="setting-hint">
@@ -539,17 +538,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             </ul>
                                         </div>
                                     </div>
-                                    
-                                    <div class="form-actions">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save"></i>
-                                            Save AI Prompt
-                                        </button>
-                                        <button type="button" class="btn btn-secondary" onclick="resetToDefault()">
-                                            <i class="fas fa-undo"></i>
-                                            Reset to Default
-                                        </button>
+                                </div>
+
+                                <div class="setting-group">
+                                    <h3>Prompt Examples</h3>
+                                    <div class="prompt-examples">
+                                        <div class="example-prompt" data-prompt="Please analyze these Microsoft Teams messages and provide a brief summary focusing on:&#10;&#10;1. Key decisions made&#10;2. Action items assigned&#10;3. Important deadlines mentioned&#10;4. Overall team progress&#10;&#10;Keep the response concise and actionable.">
+                                            <h4>📊 Executive Summary Style</h4>
+                                            <p>Focus on decisions, action items, and deadlines</p>
+                                            <button type="button" class="btn-link use-example">Use This Example</button>
+                                        </div>
+                                        
+                                        <div class="example-prompt" data-prompt="Please create a detailed analysis of these Teams messages including:&#10;&#10;1. **Discussion Topics**: What subjects were covered?&#10;2. **Key Participants**: Who were the main contributors?&#10;3. **Technical Details**: Any technical discussions or solutions?&#10;4. **Follow-ups**: What needs to happen next?&#10;5. **Sentiment**: Overall team mood and engagement&#10;&#10;Provide specific examples where relevant.">
+                                            <h4>🔍 Detailed Analysis Style</h4>
+                                            <p>Comprehensive breakdown with technical details</p>
+                                            <button type="button" class="btn-link use-example">Use This Example</button>
+                                        </div>
+                                        
+                                        <div class="example-prompt" data-prompt="Summarize these Teams messages in simple bullet points:&#10;&#10;• Main topics discussed&#10;• Important announcements&#10;• Tasks mentioned&#10;• Questions asked&#10;• Next steps&#10;&#10;Keep it short and easy to scan.">
+                                            <h4>📝 Bullet Point Style</h4>
+                                            <p>Simple, scannable format</p>
+                                            <button type="button" class="btn-link use-example">Use This Example</button>
+                                        </div>
                                     </div>
+                                </div>
+
+                                <div class="setting-actions">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i>
+                                        Save AI Prompt
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="resetToDefault()">
+                                        <i class="fas fa-undo"></i>
+                                        Reset to Default
+                                    </button>
+                                </div>
                                 </div>
                             </form>
                         </div>
@@ -594,64 +617,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </section>
 
-                <!-- AI Summary Settings -->
-                <section id="ai-summary-settings" class="settings-section" style="display: none;">
-                    <div class="card">
-                        <div class="card-header">
-                            <h2><i class="fas fa-brain"></i> AI Summary Customization</h2>
-                        </div>
-                        <div class="card-content">
-                            <form method="POST" class="settings-form">
-                                <input type="hidden" name="action" value="update_ai_prompt">
-                                
-                                <div class="setting-group">
-                                    <h3>Custom AI Prompt</h3>
-                                    <div class="setting-item full-width">
-                                        <label class="setting-title">AI Summary Prompt</label>
-                                        <textarea 
-                                            name="ai_summary_prompt" 
-                                            class="ai-prompt-textarea" 
-                                            placeholder="Enter your custom AI summary prompt..."
-                                            rows="10"
-                                        ><?php echo htmlspecialchars($settings['ai_summary_prompt']); ?></textarea>
-                                        <span class="setting-description">
-                                            Customize how the AI analyzes and summarizes your Teams messages. 
-                                            Use clear instructions to get the most relevant insights.
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div class="setting-group">
-                                    <h3>Prompt Examples</h3>
-                                    <div class="prompt-examples">
-                                        <div class="example-prompt" data-prompt="Please analyze these Microsoft Teams messages and provide a brief summary focusing on:&#10;&#10;1. Key decisions made&#10;2. Action items assigned&#10;3. Important deadlines mentioned&#10;4. Overall team progress&#10;&#10;Keep the response concise and actionable.">
-                                            <h4>📊 Executive Summary Style</h4>
-                                            <p>Focus on decisions, action items, and deadlines</p>
-                                            <button type="button" class="btn-link use-example">Use This Example</button>
-                                        </div>
-                                        
-                                        <div class="example-prompt" data-prompt="Please create a detailed analysis of these Teams messages including:&#10;&#10;1. **Discussion Topics**: What subjects were covered?&#10;2. **Key Participants**: Who were the main contributors?&#10;3. **Technical Details**: Any technical discussions or solutions?&#10;4. **Follow-ups**: What needs to happen next?&#10;5. **Sentiment**: Overall team mood and engagement&#10;&#10;Provide specific examples where relevant.">
-                                            <h4>🔍 Detailed Analysis Style</h4>
-                                            <p>Comprehensive breakdown with technical details</p>
-                                            <button type="button" class="btn-link use-example">Use This Example</button>
-                                        </div>
-                                        
-                                        <div class="example-prompt" data-prompt="Summarize these Teams messages in simple bullet points:&#10;&#10;• Main topics discussed&#10;• Important announcements&#10;• Tasks mentioned&#10;• Questions asked&#10;• Next steps&#10;&#10;Keep it short and easy to scan.">
-                                            <h4>📝 Bullet Point Style</h4>
-                                            <p>Simple, scannable format</p>
-                                            <button type="button" class="btn-link use-example">Use This Example</button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="setting-actions">
-                                    <button type="button" class="btn btn-secondary" onclick="resetToDefault()">Reset to Default</button>
-                                    <button type="submit" class="btn btn-primary">Save AI Prompt</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </section>
             </div>
         </main>
     </div>
