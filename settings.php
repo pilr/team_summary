@@ -163,21 +163,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode($export_data, JSON_PRETTY_PRINT);
                 exit();
                 break;
-                
-            case 'update_ai_prompt':
-                $new_settings = [
-                    'ai_summary_prompt' => $_POST['ai_summary_prompt'] ?? $default_settings['ai_summary_prompt']
-                ];
-                
-                try {
-                    global $db;
-                    $db->updateUserSettings($user_id, $new_settings);
-                    $settings = array_merge($settings, $new_settings);
-                    $success_message = 'AI summary prompt updated successfully.';
-                } catch (Exception $e) {
-                    $error_message = 'Failed to update AI summary prompt.';
-                }
-                break;
         }
     }
 }
@@ -282,7 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <!-- Settings Navigation -->
                 <div class="settings-nav">
-                    <button class="settings-tab active" data-tab="notifications">
+                    <button class="settings-tab" data-tab="notifications">
                         <i class="fas fa-bell"></i>
                         Notifications
                     </button>
@@ -294,7 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="fas fa-cog"></i>
                         General
                     </button>
-                    <button class="settings-tab" data-tab="ai-summary">
+                    <button class="settings-tab active" data-tab="ai-summary">
                         <i class="fas fa-brain"></i>
                         AI Summary
                     </button>
@@ -305,7 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <!-- Notifications Settings -->
-                <section id="notifications-settings" class="settings-section active">
+                <section id="notifications-settings" class="settings-section">
                     <div class="card">
                         <div class="card-header">
                             <h2><i class="fas fa-bell"></i> Notification Preferences</h2>
@@ -498,7 +483,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </section>
 
                 <!-- AI Summary Settings -->
-                <section id="ai-summary-settings" class="settings-section">
+                <section id="ai-summary-settings" class="settings-section active">
                     <div class="card">
                         <div class="card-header">
                             <h2><i class="fas fa-brain"></i> AI Summary Settings</h2>
