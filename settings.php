@@ -622,10 +622,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.addEventListener('DOMContentLoaded', function() {
             const tabs = document.querySelectorAll('.settings-tab');
             const sections = document.querySelectorAll('.settings-section');
+            
+            // Ensure AI Summary section is visible on page load
+            const aiSummarySection = document.getElementById('ai-summary-settings');
+            if (aiSummarySection) {
+                aiSummarySection.style.display = 'block';
+                console.log('AI Summary section made visible on load');
+            }
 
             tabs.forEach(tab => {
                 tab.addEventListener('click', function() {
                     const targetTab = this.dataset.tab;
+                    console.log('Tab clicked:', targetTab); // Debug log
 
                     // Remove active class from all tabs and sections
                     tabs.forEach(t => t.classList.remove('active'));
@@ -637,9 +645,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Add active class to clicked tab and corresponding section
                     this.classList.add('active');
                     const targetSection = document.getElementById(targetTab + '-settings');
+                    console.log('Target section:', targetSection); // Debug log
                     if (targetSection) {
                         targetSection.style.display = 'block';
                         targetSection.classList.add('active');
+                        console.log('Section displayed'); // Debug log
+                    } else {
+                        console.error('Target section not found:', targetTab + '-settings');
                     }
                 });
             });

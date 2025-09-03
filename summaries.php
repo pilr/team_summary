@@ -1,6 +1,11 @@
 <?php
 ob_start(); // Start output buffering
 session_start();
+
+// Performance optimizations
+ini_set('memory_limit', '256M');
+set_time_limit(30); // Set reasonable time limit
+
 require_once 'teams_api.php';
 
 // Check if user is logged in
@@ -51,8 +56,14 @@ $type_filter = $_GET['type'] ?? 'all';
 $custom_start = $_GET['start'] ?? '';
 $custom_end = $_GET['end'] ?? '';
 
-// Get channels from Teams API (real-time, no cache)
+// Get channels from Teams API with caching for better performance
 $channels = $teamsAPI->getAllChannels();
+
+// Performance optimization: Limit concurrent API calls
+$max_channels_to_process = 10; // Limit the number of channels for performance
+if (count($channels) > $max_channels_to_process) {
+    $channels = array_slice($channels, 0, $max_channels_to_process);
+}
 
 // If user is connected but no channels found, check if it's a permissions issue
 $has_permissions_issue = false;
@@ -119,7 +130,7 @@ function isMessageInDateRange($message, $startDate, $endDate) {
 }
 
 // Get real statistics data based on filters
-function getStatistics($channel_filter, $type_filter, $date_range, $teamsAPI, $channels) {
+function getStatistics($channel_filter, $type_filter, $date_range, $teamsAPI, $channels, $custom_start = '', $custom_end = '') {
     $stats = [
         'total_messages' => 0,
         'urgent_messages' => 0,
@@ -181,9 +192,10 @@ function getStatistics($channel_filter, $type_filter, $date_range, $teamsAPI, $c
             $stats['files_shared'] = $fileCount;
         }
     } else {
-        // Get aggregated data for all channels
-        foreach ($channels as $channel) {
-            $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 50);
+        // Get aggregated data for all channels (optimized - limit channels and messages)
+        $channelsToCheck = array_slice($channels, 0, 5); // Limit to first 5 channels for performance
+        foreach ($channelsToCheck as $channel) {
+            $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 25); // Reduced from 50 to 25
             
             foreach ($messages as $message) {
                 // Filter by date range
@@ -209,10 +221,10 @@ function getStatistics($channel_filter, $type_filter, $date_range, $teamsAPI, $c
     return $stats;
 }
 
-$statistics = getStatistics($channel_filter, $type_filter, $date_range, $teamsAPI, $channels);
+$statistics = getStatistics($channel_filter, $type_filter, $date_range, $teamsAPI, $channels, $custom_start, $custom_end);
 
 // Get real timeline data from selected channels
-function getTimelineItems($channel_filter, $date_range, $teamsAPI, $channels, $limit = 10) {
+function getTimelineItems($channel_filter, $date_range, $teamsAPI, $channels, $limit = 10, $custom_start = '', $custom_end = '') {
     $timelineItems = [];
     
     if (empty($channels)) {
@@ -235,7 +247,7 @@ function getTimelineItems($channel_filter, $date_range, $teamsAPI, $channels, $l
         }
         
         if ($selectedChannel) {
-            $messages = $teamsAPI->getChannelMessages($selectedChannel['teamId'], $selectedChannel['id'], $limit * 2); // Get more messages to account for filtering
+            $messages = $teamsAPI->getChannelMessages($selectedChannel['teamId'], $selectedChannel['id'], min($limit * 2, 50)); // Cap at 50 messages max
             foreach ($messages as $message) {
                 // Filter by date range
                 if (!isMessageInDateRange($message, $startDate, $endDate)) {
@@ -259,14 +271,14 @@ function getTimelineItems($channel_filter, $date_range, $teamsAPI, $channels, $l
             }
         }
     } else {
-        // Get messages from all channels (limited to avoid too many API calls)
-        $channelsToCheck = array_slice($channels, 0, 5); // Limit to first 5 channels
+        // Get messages from all channels (optimized - limit channels and messages)
+        $channelsToCheck = array_slice($channels, 0, 3); // Reduced from 5 to 3 channels for better performance
         foreach ($channelsToCheck as $channel) {
             if (count($timelineItems) >= $limit) {
                 break;
             }
             
-            $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 10); // Get more for filtering
+            $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 8); // Reduced from 10 to 8 messages
             foreach ($messages as $message) {
                 // Filter by date range
                 if (!isMessageInDateRange($message, $startDate, $endDate)) {
@@ -300,10 +312,10 @@ function getTimelineItems($channel_filter, $date_range, $teamsAPI, $channels, $l
 }
 
 // Get real timeline data
-$timeline_items = getTimelineItems($channel_filter, $date_range, $teamsAPI, $channels, 15);
+$timeline_items = getTimelineItems($channel_filter, $date_range, $teamsAPI, $channels, 15, $custom_start, $custom_end);
 
 // Generate real summary cards from Teams API data
-function generateSummaryCards($channels, $teamsAPI, $channel_filter, $date_range) {
+function generateSummaryCards($channels, $teamsAPI, $channel_filter, $date_range, $custom_start = '', $custom_end = '') {
     $summary_cards = [];
     
     if (empty($channels)) {
@@ -315,11 +327,11 @@ function generateSummaryCards($channels, $teamsAPI, $channel_filter, $date_range
     $startDate = $dateRange['start'];
     $endDate = $dateRange['end'];
     
-    // Get up to 6 channels for summary cards
-    $channelsToSummarize = array_slice($channels, 0, 6);
+    // Get up to 4 channels for summary cards (reduced for performance)
+    $channelsToSummarize = array_slice($channels, 0, 4);
     
     foreach ($channelsToSummarize as $channel) {
-        $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 100);
+        $messages = $teamsAPI->getChannelMessages($channel['teamId'], $channel['id'], 50); // Reduced from 100 to 50
         $messageCount = 0;
         
         $urgentCount = 0;
@@ -423,7 +435,7 @@ function generateSummaryCards($channels, $teamsAPI, $channel_filter, $date_range
 }
 
 // Generate real summary cards from API data
-$summary_cards = generateSummaryCards($channels, $teamsAPI, $channel_filter, $date_range);
+$summary_cards = generateSummaryCards($channels, $teamsAPI, $channel_filter, $date_range, $custom_start, $custom_end);
 
 /**
  * Test if the issue is permissions-related (403 Forbidden)
