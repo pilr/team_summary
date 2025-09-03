@@ -549,9 +549,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
 
                                 <div class="setting-actions">
-                                    <button type="submit" class="btn btn-primary">
+                                    <button type="submit" class="btn btn-primary" id="saveAIPromptBtn">
                                         <i class="fas fa-save"></i>
-                                        Save AI Prompt
+                                        <span class="btn-text">Save AI Prompt</span>
+                                        <i class="fas fa-spinner fa-spin loading-spinner" style="display: none;"></i>
                                     </button>
                                     <button type="button" class="btn btn-secondary" onclick="resetToDefault()">
                                         <i class="fas fa-undo"></i>
@@ -683,6 +684,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }, 300);
                 }, 5000);
             });
+
+            // AI Prompt save button loading state
+            const aiPromptForm = document.querySelector('form[action=""][method="POST"]');
+            const saveBtn = document.getElementById('saveAIPromptBtn');
+            
+            if (aiPromptForm && saveBtn) {
+                aiPromptForm.addEventListener('submit', function(e) {
+                    // Show loading state
+                    const btnText = saveBtn.querySelector('.btn-text');
+                    const spinner = saveBtn.querySelector('.loading-spinner');
+                    
+                    if (btnText && spinner) {
+                        btnText.style.display = 'none';
+                        spinner.style.display = 'inline-block';
+                        saveBtn.disabled = true;
+                    }
+                });
+            }
+
+            // Show save confirmation when prompt is changed
+            const promptTextarea = document.getElementById('ai_summary_prompt');
+            if (promptTextarea) {
+                let originalValue = promptTextarea.value;
+                
+                promptTextarea.addEventListener('input', function() {
+                    if (this.value !== originalValue) {
+                        saveBtn.classList.add('btn-warning');
+                        saveBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span class="btn-text">Save Changes</span>';
+                    } else {
+                        saveBtn.classList.remove('btn-warning');
+                        saveBtn.innerHTML = '<i class="fas fa-save"></i> <span class="btn-text">Save AI Prompt</span>';
+                    }
+                });
+            }
         });
         
         // Function to reset AI prompt to default
@@ -1039,6 +1074,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .btn-secondary:hover {
             background: var(--border-color);
             transform: translateY(-1px);
+        }
+
+        .btn-warning {
+            background: #f59e0b !important;
+            border-color: #f59e0b !important;
+            color: white !important;
+        }
+
+        .btn-warning:hover {
+            background: #d97706 !important;
+            border-color: #d97706 !important;
+        }
+
+        .loading-spinner {
+            margin-left: 8px;
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
         }
 
         /* Mobile responsive for AI settings */
