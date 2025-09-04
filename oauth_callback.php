@@ -83,6 +83,17 @@ try {
     // Save token to database
     global $db;
     
+    // Debug: Check if $db is properly initialized
+    if (!$db) {
+        error_log("OAuth Callback - CRITICAL: Global \$db is null, creating new instance");
+        $db = new DatabaseHelper();
+    }
+    
+    if (!$db) {
+        error_log("OAuth Callback - FATAL: Cannot create DatabaseHelper instance");
+        throw new Exception("Database helper initialization failed");
+    }
+    
     // Log token details for debugging (without sensitive data)
     error_log("OAuth Callback - User ID: $user_id, Token Type: " . ($token_response['token_type'] ?? 'Bearer') . ", Expires: " . $expires_at->format('Y-m-d H:i:s'));
     
@@ -98,6 +109,21 @@ try {
 
     if (!$token_saved) {
         error_log("Failed to save OAuth token to database for user $user_id");
+        error_log("Database error - checking connection...");
+        
+        try {
+            $pdo = $db->getPDO();
+            if ($pdo) {
+                error_log("Database connection is OK, checking table...");
+                $tableCheck = $pdo->query("SHOW TABLES LIKE 'oauth_tokens'")->rowCount();
+                error_log("oauth_tokens table exists: " . ($tableCheck > 0 ? 'YES' : 'NO'));
+            } else {
+                error_log("Database PDO connection is NULL");
+            }
+        } catch (Exception $debugEx) {
+            error_log("Database debug error: " . $debugEx->getMessage());
+        }
+        
         throw new Exception("Failed to save token to database");
     }
     
