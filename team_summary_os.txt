@@ -1,4 +1,0 @@
-Client ID: 99959482-ac9a-4981-962c-f1eb6650817c
-Client Secret: FFC8Q~bWBc9M_fsN4GfO26y6GgFqhhB4WE-NvcHF
-Secret ID: 11428109-388f-49ac-bf12-a831c4eb39a1
-Tenant ID (Directory ID): a124fa57-10b8-41ec-b4af-54c4e8121c2f
