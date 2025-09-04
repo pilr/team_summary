@@ -124,6 +124,9 @@ if (!$isLoggedIn) {
             <a href="diagnostic_report.php?secret=diagnostic2024&auto=1" class="btn btn-info" target="_blank">
                 📊 Auto-Refresh Report
             </a>
+            <a href="debug_oauth_flow.php?secret=debug2024" class="btn btn-info" target="_blank">
+                🔍 OAuth Flow Debug
+            </a>
         </div>
         
         <div class="panel">
@@ -131,6 +134,9 @@ if (!$isLoggedIn) {
             <p>Fix database table and connection issues</p>
             <a href="emergency_db_fix.php?secret=emergency2024" class="btn btn-danger" target="_blank">
                 🚨 Emergency DB Fix
+            </a>
+            <a href="force_create_table.php?secret=force2024" class="btn btn-danger" target="_blank">
+                💥 Force Create Table
             </a>
             <a href="fix_oauth_tokens_table.php?secret=diagnostic2024" class="btn btn-warning" target="_blank">
                 🔧 Standard Table Fix
