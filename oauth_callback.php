@@ -106,9 +106,17 @@ try {
     // Test the token by making a Graph API call
     $test_success = testGraphAPIAccess($token_response['access_token']);
     
+    // Initialize persistent service to ensure token is properly managed
+    require_once 'persistent_teams_service.php';
+    global $persistentTeamsService;
+    
     if ($test_success) {
+        // Verify with persistent service as well
+        $persistent_status = $persistentTeamsService->getUserTeamsStatus($user_id);
+        error_log("OAuth Callback - Persistent service status: " . $persistent_status['status']);
+        
         // Redirect to account page with success message
-        header('Location: account.php?success=teams_connected');
+        header('Location: account.php?success=teams_connected&persistent=true');
     } else {
         // Token saved but API test failed
         header('Location: account.php?warning=teams_connected_limited');

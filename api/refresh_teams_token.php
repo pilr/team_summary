@@ -1,8 +1,7 @@
 <?php
 header('Content-Type: application/json');
 session_start();
-require_once '../database_helper.php';
-require_once '../teams_config.php';
+require_once '../persistent_teams_service.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -19,7 +18,10 @@ if (!$user_id) {
 }
 
 try {
-    global $db;
+    global $persistentTeamsService;
+    
+    // Get token info
+    $db = new DatabaseHelper();
     $token_info = $db->getOAuthToken($user_id, 'microsoft');
     
     if (!$token_info || empty($token_info['refresh_token'])) {
@@ -27,7 +29,8 @@ try {
         exit();
     }
     
-    $refresh_success = refreshAccessToken($token_info['refresh_token'], $user_id);
+    // Use persistent service to refresh token
+    $refresh_success = $persistentTeamsService->refreshUserToken($user_id, $token_info['refresh_token']);
     
     if ($refresh_success) {
         echo json_encode(['success' => true, 'message' => 'Token refreshed successfully']);

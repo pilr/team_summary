@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 session_start();
-require_once '../database_helper.php';
+require_once '../persistent_teams_service.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -18,40 +18,21 @@ if (!$user_id) {
 }
 
 try {
-    global $db;
-    $token_info = $db->getOAuthToken($user_id, 'microsoft');
+    global $persistentTeamsService;
     
-    if (!$token_info) {
-        echo json_encode(['status' => 'disconnected']);
-        exit();
-    }
+    // Use persistent service to check connection status
+    $status = $persistentTeamsService->getUserTeamsStatus($user_id);
     
-    // Check if token is expired
-    $expires_at = new DateTime($token_info['expires_at']);
-    $now = new DateTime();
-    
-    if ($now >= $expires_at) {
-        // Try to refresh token if refresh_token exists
-        if (!empty($token_info['refresh_token'])) {
-            $refreshed = refreshAccessToken($token_info['refresh_token'], $user_id);
-            if ($refreshed) {
-                echo json_encode(['status' => 'connected']);
-            } else {
-                echo json_encode(['status' => 'disconnected']);
-            }
+    if ($status['status'] === 'connected') {
+        // Test actual API access
+        $api_test = $persistentTeamsService->testUserTeamsAccess($user_id);
+        if ($api_test) {
+            echo json_encode(['status' => 'connected', 'expires_at' => $status['expires_at'] ?? null]);
         } else {
-            echo json_encode(['status' => 'disconnected']);
+            echo json_encode(['status' => 'error', 'message' => 'API access test failed']);
         }
-        exit();
-    }
-    
-    // Test the token with Graph API
-    $test_result = testGraphAPIAccess($token_info['access_token']);
-    
-    if ($test_result) {
-        echo json_encode(['status' => 'connected']);
     } else {
-        echo json_encode(['status' => 'error']);
+        echo json_encode(['status' => $status['status']]);
     }
 
 } catch (Exception $e) {
