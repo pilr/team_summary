@@ -45,12 +45,27 @@ class DatabaseHelper {
     
     public function saveOAuthToken($user_id, $provider, $access_token, $refresh_token = null, $token_type = 'Bearer', $expires_at, $scope = '') {
         try {
+            error_log("DatabaseHelper: saveOAuthToken called for user_id=$user_id, provider=$provider");
+            
             // First check if oauth_tokens table exists
             $tableCheck = $this->pdo->query("SHOW TABLES LIKE 'oauth_tokens'");
             if ($tableCheck->rowCount() == 0) {
                 error_log("OAuth tokens table does not exist. Creating it...");
                 $this->createOAuthTable();
             }
+            
+            // Validate inputs
+            if (!$user_id || !$provider || !$access_token || !$expires_at) {
+                error_log("Invalid parameters for saveOAuthToken: user_id=$user_id, provider=$provider");
+                return false;
+            }
+            
+            // Ensure expires_at is in proper format
+            if ($expires_at instanceof DateTime) {
+                $expires_at = $expires_at->format('Y-m-d H:i:s');
+            }
+            
+            error_log("Preparing to save token with expires_at: $expires_at");
             
             $stmt = $this->pdo->prepare("
                 INSERT INTO oauth_tokens (user_id, provider, access_token, refresh_token, token_type, expires_at, scope)
@@ -64,7 +79,7 @@ class DatabaseHelper {
                     updated_at = CURRENT_TIMESTAMP
             ");
             
-            $result = $stmt->execute([
+            $params = [
                 $user_id,
                 $provider,
                 $access_token,
@@ -72,18 +87,34 @@ class DatabaseHelper {
                 $token_type,
                 $expires_at,
                 $scope
-            ]);
+            ];
+            
+            error_log("Executing saveOAuthToken with params: " . json_encode([
+                'user_id' => $user_id,
+                'provider' => $provider,
+                'token_type' => $token_type,
+                'expires_at' => $expires_at,
+                'scope' => $scope
+            ]));
+            
+            $result = $stmt->execute($params);
             
             if ($result) {
-                error_log("OAuth token saved successfully for user $user_id");
+                $affectedRows = $stmt->rowCount();
+                error_log("OAuth token saved successfully for user $user_id (affected rows: $affectedRows)");
             } else {
-                error_log("Failed to execute OAuth token save for user $user_id");
+                $errorInfo = $stmt->errorInfo();
+                error_log("Failed to execute OAuth token save for user $user_id. Error: " . json_encode($errorInfo));
             }
             
             return $result;
         } catch (PDOException $e) {
-            error_log("Save OAuth token failed: " . $e->getMessage());
+            error_log("Save OAuth token PDO exception: " . $e->getMessage());
             error_log("SQL State: " . $e->getCode());
+            error_log("Error Info: " . json_encode($e->errorInfo));
+            return false;
+        } catch (Exception $e) {
+            error_log("Save OAuth token general exception: " . $e->getMessage());
             return false;
         }
     }
@@ -108,10 +139,10 @@ class DatabaseHelper {
             UNIQUE KEY unique_user_provider (user_id, provider),
             INDEX idx_user_provider (user_id, provider),
             INDEX idx_expires_at (expires_at)
-        )";
+        ) ENGINE=InnoDB";
         
         $this->pdo->exec($sql);
-        error_log("OAuth tokens table created");
+        error_log("OAuth tokens table created successfully");
     }
     
     public function getOAuthToken($user_id, $provider) {
