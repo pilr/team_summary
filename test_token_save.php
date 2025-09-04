@@ -5,10 +5,19 @@
  */
 require_once 'database_helper.php';
 
-// Prevent web access for security
-if (isset($_SERVER['REQUEST_METHOD'])) {
-    header('Content-Type: text/plain');
-    echo "This script is for testing only.\n";
+// Security check - allow web access with secret parameter
+$secret = $_GET['secret'] ?? '';
+$isCommandLine = !isset($_SERVER['REQUEST_METHOD']);
+$hasSecret = $secret === 'diagnostic2024';
+
+if (!$isCommandLine && !$hasSecret) {
+    http_response_code(403);
+    die('Access denied. Use the secret parameter or run from command line.');
+}
+
+// Set content type for web access
+if (!$isCommandLine) {
+    header('Content-Type: text/plain; charset=utf-8');
 }
 
 echo "=== Testing OAuth Token Save Functionality ===\n";

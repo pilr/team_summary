@@ -5,10 +5,19 @@
  */
 require_once 'database_helper.php';
 
-// Prevent web access
-if (isset($_SERVER['REQUEST_METHOD'])) {
+// Security check - allow web access with secret parameter
+$secret = $_GET['secret'] ?? '';
+$isCommandLine = !isset($_SERVER['REQUEST_METHOD']);
+$hasSecret = $secret === 'diagnostic2024'; // Change this secret as needed
+
+if (!$isCommandLine && !$hasSecret) {
     http_response_code(403);
-    die('Access denied. This script can only be run from command line or direct execution.');
+    die('Access denied. Use the secret parameter or run from command line.');
+}
+
+// Set content type for web access
+if (!$isCommandLine) {
+    header('Content-Type: text/plain; charset=utf-8');
 }
 
 echo "=== OAuth Tokens Table Fix Script ===\n";
