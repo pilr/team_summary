@@ -38,9 +38,9 @@ try {
         $db = new DatabaseHelper();
     }
     
-    // Check api_keys table for user's OpenAI API key
-    $stmt = $db->getPDO()->prepare("SELECT openai_api_key FROM api_keys WHERE user_id = ?");
-    $stmt->execute([$user_id]);
+    // Check api_keys table for OpenAI API key (shared by all users)
+    $stmt = $db->getPDO()->prepare("SELECT openai_api_key FROM api_keys LIMIT 1");
+    $stmt->execute();
     $api_keys = $stmt->fetch(PDO::FETCH_ASSOC);
     
     $openai_key = '';
@@ -63,7 +63,7 @@ try {
     if (empty($openai_key) || strlen($openai_key) < 10) {
         echo json_encode([
             'success' => false, 
-            'error' => 'No OpenAI API key configured. Please contact your administrator to configure API access.',
+            'error' => 'OpenAI API service not configured. Please contact your administrator.',
             'service_status' => 'not_configured'
         ]);
         exit;
@@ -73,7 +73,7 @@ try {
     if (!preg_match('/^sk-[a-zA-Z0-9\-_]+$/', $openai_key)) {
         echo json_encode([
             'success' => false, 
-            'error' => 'Invalid OpenAI API key format. Please contact your administrator to update the API configuration.',
+            'error' => 'Invalid OpenAI API configuration. Please contact your administrator.',
             'service_status' => 'invalid_key'
         ]);
         exit;

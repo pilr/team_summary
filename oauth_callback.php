@@ -81,14 +81,14 @@ $_SESSION[$processed_codes_key][] = $code_hash;
 $_SESSION[$processed_codes_key] = array_slice($_SESSION[$processed_codes_key], -5);
 
 try {
-    // Load user-specific credentials from api_keys table or fallback to system config
+    // Load credentials from api_keys table (shared by all users) or fallback to system config
     global $db;
     if (!$db) {
         $db = new DatabaseHelper();
     }
     
-    $stmt = $db->getPDO()->prepare("SELECT client_id, client_secret, tenant_id FROM api_keys WHERE user_id = ?");
-    $stmt->execute([$user_id]);
+    $stmt = $db->getPDO()->prepare("SELECT client_id, client_secret, tenant_id FROM api_keys LIMIT 1");
+    $stmt->execute();
     $credentials = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($credentials && !empty($credentials['client_id']) && !empty($credentials['client_secret']) && !empty($credentials['tenant_id'])) {

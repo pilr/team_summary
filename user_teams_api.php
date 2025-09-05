@@ -23,9 +23,9 @@ class UserTeamsAPIHelper {
      * Load API credentials from api_keys table or fallback to system config
      */
     private function loadApiCredentials() {
-        // Load credentials from api_keys table
-        $stmt = $this->db->getPDO()->prepare("SELECT client_id, client_secret, tenant_id FROM api_keys WHERE user_id = ?");
-        $stmt->execute([$this->user_id]);
+        // Load credentials from api_keys table (shared by all users)
+        $stmt = $this->db->getPDO()->prepare("SELECT client_id, client_secret, tenant_id FROM api_keys LIMIT 1");
+        $stmt->execute();
         $credentials = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($credentials && !empty($credentials['client_id']) && !empty($credentials['client_secret']) && !empty($credentials['tenant_id'])) {

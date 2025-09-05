@@ -25,20 +25,20 @@ if ($current_user['session_refreshed']) {
     error_log("Account.php: Session data refreshed for user {$user_id} - {$user_email}");
 }
 
-// Load user-specific API credentials from api_keys table
+// Load API credentials from api_keys table (shared by all users)
 global $db;
 if (!$db) {
     $db = new DatabaseHelper();
 }
 
-$stmt = $db->getPDO()->prepare("SELECT client_id, client_secret, tenant_id FROM api_keys WHERE user_id = ?");
-$stmt->execute([$user_id]);
-$user_credentials = $stmt->fetch(PDO::FETCH_ASSOC);
+$stmt = $db->getPDO()->prepare("SELECT client_id, client_secret, tenant_id FROM api_keys LIMIT 1");
+$stmt->execute();
+$system_credentials = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Set credentials for OAuth (user-specific or fallback to system)
-if ($user_credentials && !empty($user_credentials['client_id']) && !empty($user_credentials['client_secret']) && !empty($user_credentials['tenant_id'])) {
-    $oauth_client_id = $user_credentials['client_id'];
-    $oauth_tenant_id = $user_credentials['tenant_id'];
+// Set credentials for OAuth (system-wide or fallback to config)
+if ($system_credentials && !empty($system_credentials['client_id']) && !empty($system_credentials['client_secret']) && !empty($system_credentials['tenant_id'])) {
+    $oauth_client_id = $system_credentials['client_id'];
+    $oauth_tenant_id = $system_credentials['tenant_id'];
 } else {
     // Fallback to system configuration
     $oauth_client_id = TEAMS_CLIENT_ID;
