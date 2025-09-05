@@ -69,21 +69,32 @@ $channel_filter = $_GET['channel'] ?? 'all';
 echo "Date range: $date_range, Channel filter: $channel_filter\n";
 
 try {
-    // Test basic API functionality
+    // Test basic API functionality that summaries.php actually uses
     echo "Testing basic API functionality...\n";
     
-    // This is likely where the error occurs - let's test it step by step
-    echo "Calling getUserChannels...\n";
-    $channels = $teamsAPI->getUserChannels();
+    // Test getAllChannels() - this is what summaries.php uses
+    echo "Calling getAllChannels...\n";
+    $channels = $teamsAPI->getAllChannels();
     echo "Channels retrieved: " . (is_array($channels) ? count($channels) : 'null') . "\n";
     
-    echo "Calling getTeamsActivity...\n";
-    $activities = $teamsAPI->getTeamsActivity($date_range);
-    echo "Activities retrieved: " . (is_array($activities) ? count($activities) : 'null') . "\n";
+    // Test getChannelMessages() if we have channels
+    if (is_array($channels) && count($channels) > 0) {
+        echo "Testing getChannelMessages with first channel...\n";
+        $firstChannel = $channels[0];
+        if (isset($firstChannel['teamId']) && isset($firstChannel['id'])) {
+            $messages = $teamsAPI->getChannelMessages($firstChannel['teamId'], $firstChannel['id'], 10);
+            echo "Messages retrieved: " . (is_array($messages) ? count($messages) : 'null') . "\n";
+        } else {
+            echo "First channel missing teamId or id - skipping message test\n";
+        }
+    } else {
+        echo "No channels found - skipping message test\n";
+    }
     
 } catch (Exception $e) {
     echo "❌ API CALL FAILED: " . $e->getMessage() . "\n";
     echo "File: " . $e->getFile() . ":" . $e->getLine() . "\n";
+    echo "Stack trace: " . $e->getTraceAsString() . "\n";
     echo "This is likely the cause of the HTTP 500 error!\n";
 }
 

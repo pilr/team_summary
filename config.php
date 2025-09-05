@@ -12,12 +12,14 @@ define('APP_NAME', 'TeamsSummary');
 define('APP_VERSION', '1.0.0');
 define('APP_URL', 'https://teamsummary.seriousweb.dev/');
 
-// Session configuration
-ini_set('session.cookie_lifetime', 3600 * 24 * 7); // 7 days
-ini_set('session.gc_maxlifetime', 3600 * 24 * 7);
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 0); // Set to 1 for HTTPS
-ini_set('session.use_only_cookies', 1);
+// Session configuration - only set if session is not already active
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    ini_set('session.cookie_lifetime', 3600 * 24 * 7); // 7 days
+    ini_set('session.gc_maxlifetime', 3600 * 24 * 7);
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.cookie_secure', 0); // Set to 1 for HTTPS
+    ini_set('session.use_only_cookies', 1);
+}
 
 // Demo credentials
 define('DEMO_EMAIL', 'demo@company.com');
