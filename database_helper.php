@@ -122,7 +122,7 @@ class DatabaseHelper {
     /**
      * Create oauth_tokens table if it doesn't exist
      */
-    private function createOAuthTable() {
+    public function createOAuthTable() {
         $sql = "
         CREATE TABLE IF NOT EXISTS oauth_tokens (
             id INT AUTO_INCREMENT PRIMARY KEY,
