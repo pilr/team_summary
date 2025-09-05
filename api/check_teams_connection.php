@@ -2,9 +2,13 @@
 header('Content-Type: application/json');
 session_start();
 require_once '../persistent_teams_service.php';
+require_once '../error_logger.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    ErrorLogger::logTeamsError("connection_check", "User not logged in", [
+        'session_data' => $_SESSION
+    ]);
     http_response_code(401);
     echo json_encode(['status' => 'unauthorized']);
     exit();
@@ -12,6 +16,9 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 $user_id = $_SESSION['user_id'] ?? null;
 if (!$user_id) {
+    ErrorLogger::logTeamsError("connection_check", "No user_id in session", [
+        'session_data' => $_SESSION
+    ]);
     http_response_code(401);
     echo json_encode(['status' => 'unauthorized']);
     exit();
@@ -20,6 +27,8 @@ if (!$user_id) {
 try {
     global $persistentTeamsService;
     
+    ErrorLogger::log("Checking Teams connection", ['user_id' => $user_id], 'INFO');
+    
     // Use persistent service to check connection status
     $status = $persistentTeamsService->getUserTeamsStatus($user_id);
     
@@ -27,16 +36,31 @@ try {
         // Test actual API access
         $api_test = $persistentTeamsService->testUserTeamsAccess($user_id);
         if ($api_test) {
+            ErrorLogger::logSuccess("Teams connection verified", [
+                'user_id' => $user_id,
+                'expires_at' => $status['expires_at'] ?? null
+            ]);
             echo json_encode(['status' => 'connected', 'expires_at' => $status['expires_at'] ?? null]);
         } else {
+            ErrorLogger::logTeamsError("connection_test", "API access test failed", [
+                'user_id' => $user_id,
+                'status_check' => $status
+            ]);
             echo json_encode(['status' => 'error', 'message' => 'API access test failed']);
         }
     } else {
+        ErrorLogger::log("Teams connection status", [
+            'user_id' => $user_id,
+            'status' => $status['status']
+        ], 'INFO');
         echo json_encode(['status' => $status['status']]);
     }
 
 } catch (Exception $e) {
-    error_log("Check Teams connection error: " . $e->getMessage());
+    ErrorLogger::logTeamsError("connection_check", $e->getMessage(), [
+        'user_id' => $user_id,
+        'exception_trace' => $e->getTraceAsString()
+    ]);
     echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
 }
 

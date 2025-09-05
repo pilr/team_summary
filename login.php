@@ -2,6 +2,7 @@
 ob_start(); // Start output buffering
 session_start();
 require_once 'database_helper.php';
+require_once 'error_logger.php';
 
 // Initialize variables
 $error_message = '';
@@ -63,7 +64,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } catch (Exception $e) {
             // Database connection failed - provide more specific error
-            error_log("Database authentication failed: " . $e->getMessage());
+            ErrorLogger::logDatabaseError("authentication", $e->getMessage(), [
+                'email' => $email,
+                'login_attempt' => true
+            ]);
             $error_message = 'Login system temporarily unavailable. Please try again later.';
         }
     }

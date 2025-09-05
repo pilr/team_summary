@@ -5,6 +5,7 @@
  */
 require_once 'teams_config.php';
 require_once 'database_helper.php';
+require_once 'error_logger.php';
 
 class PersistentTeamsService {
     private $db;

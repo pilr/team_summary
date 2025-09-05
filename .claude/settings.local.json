@@ -13,7 +13,15 @@
       "Bash(rm:*)",
       "Bash(php:*)",
       "WebFetch(domain:localhost)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Read(/E:\\team_summary/**)",
+      "Read(/E:\\team_summary/**)",
+      "Read(/E:\\team_summary/**)",
+      "Read(/E:\\team_summary/**)",
+      "Read(/E:\\team_summary/**)",
+      "Read(/E:\\team_summary\\api/**)",
+      "Read(/E:\\team_summary/**)",
+      "Read(/E:\\team_summary/**)"
     ],
     "deny": [],
     "ask": []

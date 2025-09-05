@@ -2,6 +2,7 @@
 session_start();
 require_once 'teams_config.php';
 require_once 'database_helper.php';
+require_once 'error_logger.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -11,10 +12,17 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 $user_id = $_SESSION['user_id'] ?? null;
 $user_name = $_SESSION['user_name'] ?? 'Unknown';
-error_log("OAuth Callback: Processing for dashboard user_id=$user_id, user_name=$user_name");
+ErrorLogger::log("OAuth Callback: Processing for dashboard user_id=$user_id, user_name=$user_name", [
+    'user_id' => $user_id,
+    'user_name' => $user_name,
+    'session_data' => $_SESSION
+]);
 
 if (!$user_id) {
-    error_log("OAuth Callback: No user_id in session, redirecting to login");
+    ErrorLogger::logOAuthError("callback_validation", "No user_id in session", [
+        'session_data' => $_SESSION,
+        'redirect' => 'login.php?error=invalid_session'
+    ]);
     header('Location: login.php?error=invalid_session');
     exit();
 }
@@ -23,12 +31,20 @@ if (!$user_id) {
 if (isset($_GET['error'])) {
     $error = $_GET['error'];
     $error_description = $_GET['error_description'] ?? 'Unknown error occurred';
-    error_log("OAuth error: $error - $error_description");
+    ErrorLogger::logOAuthError("callback_error", "$error - $error_description", [
+        'error_code' => $error,
+        'error_description' => $error_description,
+        'get_params' => $_GET
+    ]);
     header('Location: account.php?error=oauth_failed&message=' . urlencode($error_description));
     exit();
 }
 
 if (!isset($_GET['code'])) {
+    ErrorLogger::logOAuthError("callback_validation", "No authorization code received", [
+        'get_params' => $_GET,
+        'redirect' => 'account.php?error=no_auth_code'
+    ]);
     header('Location: account.php?error=no_auth_code');
     exit();
 }
@@ -46,7 +62,7 @@ try {
         'client_secret' => TEAMS_CLIENT_SECRET,
         'code' => $auth_code,
         'grant_type' => 'authorization_code',
-        'redirect_uri' => (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/oauth_callback.php'
+        'redirect_uri' => TEAMS_REDIRECT_URI
     ];
 
     $ch = curl_init(TEAMS_TOKEN_URL);
@@ -63,15 +79,28 @@ try {
     curl_close($ch);
 
     if ($curl_error) {
+        ErrorLogger::logAPIError("Microsoft", "token_endpoint", 0, "CURL Error: $curl_error", [
+            'token_request' => $token_data,
+            'curl_error' => $curl_error
+        ]);
         throw new Exception("CURL Error: $curl_error");
     }
 
     if ($http_code !== 200) {
+        ErrorLogger::logAPIError("Microsoft", "token_endpoint", $http_code, "Token request failed", [
+            'token_request' => $token_data,
+            'response' => $response,
+            'http_code' => $http_code
+        ]);
         throw new Exception("Token request failed with HTTP code: $http_code. Response: $response");
     }
 
     $token_response = json_decode($response, true);
     if (!$token_response || !isset($token_response['access_token'])) {
+        ErrorLogger::logOAuthError("token_parse", "Invalid token response", [
+            'response' => $response,
+            'parsed_response' => $token_response
+        ]);
         throw new Exception("Invalid token response: $response");
     }
 
@@ -85,17 +114,35 @@ try {
     
     // Debug: Check if $db is properly initialized
     if (!$db) {
-        error_log("OAuth Callback - CRITICAL: Global \$db is null, creating new instance");
-        $db = new DatabaseHelper();
+        ErrorLogger::logDatabaseError("initialization", "Global \$db is null, creating new instance", [
+            'user_id' => $user_id,
+            'callback_step' => 'token_save'
+        ]);
+        try {
+            $db = new DatabaseHelper();
+        } catch (Exception $dbEx) {
+            ErrorLogger::logDatabaseError("initialization", "Failed to create DatabaseHelper: " . $dbEx->getMessage(), [
+                'user_id' => $user_id,
+                'exception' => $dbEx->getMessage()
+            ]);
+            throw new Exception("Database connection failed: " . $dbEx->getMessage());
+        }
     }
     
     if (!$db) {
-        error_log("OAuth Callback - FATAL: Cannot create DatabaseHelper instance");
+        ErrorLogger::logDatabaseError("initialization", "Cannot create DatabaseHelper instance", [
+            'user_id' => $user_id
+        ]);
         throw new Exception("Database helper initialization failed");
     }
     
     // Log token details for debugging (without sensitive data)
-    error_log("OAuth Callback - User ID: $user_id, Token Type: " . ($token_response['token_type'] ?? 'Bearer') . ", Expires: " . $expires_at->format('Y-m-d H:i:s'));
+    ErrorLogger::logSuccess("OAuth Token Retrieved", [
+        'user_id' => $user_id,
+        'token_type' => $token_response['token_type'] ?? 'Bearer',
+        'expires_at' => $expires_at->format('Y-m-d H:i:s'),
+        'scope' => $token_response['scope'] ?? ''
+    ]);
     
     $token_saved = $db->saveOAuthToken(
         $user_id,
@@ -108,26 +155,56 @@ try {
     );
 
     if (!$token_saved) {
-        error_log("Failed to save OAuth token to database for user $user_id");
-        error_log("Database error - checking connection...");
+        ErrorLogger::logDatabaseError("token_save", "Failed to save OAuth token", [
+            'user_id' => $user_id,
+            'provider' => 'microsoft'
+        ]);
         
+        // Diagnostic information
         try {
             $pdo = $db->getPDO();
             if ($pdo) {
-                error_log("Database connection is OK, checking table...");
                 $tableCheck = $pdo->query("SHOW TABLES LIKE 'oauth_tokens'")->rowCount();
-                error_log("oauth_tokens table exists: " . ($tableCheck > 0 ? 'YES' : 'NO'));
+                ErrorLogger::log("Database diagnostic", [
+                    'connection_status' => 'OK',
+                    'oauth_tokens_table_exists' => $tableCheck > 0 ? 'YES' : 'NO',
+                    'user_id' => $user_id
+                ], 'DEBUG');
+                
+                // If table doesn't exist, try to create it
+                if ($tableCheck == 0) {
+                    ErrorLogger::log("Attempting to create oauth_tokens table", [], 'INFO');
+                    $db->createOAuthTable();
+                    // Retry save
+                    $token_saved = $db->saveOAuthToken(
+                        $user_id,
+                        'microsoft',
+                        $token_response['access_token'],
+                        $token_response['refresh_token'] ?? null,
+                        $token_response['token_type'] ?? 'Bearer',
+                        $expires_at->format('Y-m-d H:i:s'),
+                        $token_response['scope'] ?? ''
+                    );
+                    if ($token_saved) {
+                        ErrorLogger::logSuccess("OAuth token saved after table creation", ['user_id' => $user_id]);
+                    }
+                }
             } else {
-                error_log("Database PDO connection is NULL");
+                ErrorLogger::logDatabaseError("diagnostic", "PDO connection is NULL", ['user_id' => $user_id]);
             }
         } catch (Exception $debugEx) {
-            error_log("Database debug error: " . $debugEx->getMessage());
+            ErrorLogger::logDatabaseError("diagnostic", "Database debug error: " . $debugEx->getMessage(), [
+                'user_id' => $user_id,
+                'exception' => $debugEx->getMessage()
+            ]);
         }
         
-        throw new Exception("Failed to save token to database");
+        if (!$token_saved) {
+            throw new Exception("Failed to save token to database");
+        }
     }
     
-    error_log("OAuth token saved successfully for user $user_id");
+    ErrorLogger::logSuccess("OAuth token saved successfully", ['user_id' => $user_id]);
 
     // Test the token by making a Graph API call
     $test_success = testGraphAPIAccess($token_response['access_token']);
@@ -139,18 +216,30 @@ try {
     if ($test_success) {
         // Verify with persistent service as well
         $persistent_status = $persistentTeamsService->getUserTeamsStatus($user_id);
-        error_log("OAuth Callback - Persistent service status: " . $persistent_status['status']);
+        ErrorLogger::logSuccess("OAuth callback completed", [
+            'user_id' => $user_id,
+            'api_test' => 'success',
+            'persistent_status' => $persistent_status['status']
+        ]);
         
         // Redirect to account page with success message
         header('Location: account.php?success=teams_connected&persistent=true');
     } else {
+        ErrorLogger::logTeamsError("api_test", "Graph API test failed after token save", [
+            'user_id' => $user_id,
+            'token_saved' => true
+        ]);
         // Token saved but API test failed
         header('Location: account.php?warning=teams_connected_limited');
     }
     exit();
 
 } catch (Exception $e) {
-    error_log("OAuth callback error: " . $e->getMessage());
+    ErrorLogger::logOAuthError("callback_exception", $e->getMessage(), [
+        'user_id' => $user_id ?? 'unknown',
+        'auth_code_present' => isset($auth_code),
+        'exception_trace' => $e->getTraceAsString()
+    ]);
     header('Location: account.php?error=connection_failed&message=' . urlencode($e->getMessage()));
     exit();
 }
@@ -163,6 +252,7 @@ function testGraphAPIAccess($access_token) {
         // Test with a simple Graph API call
         $ch = curl_init('https://graph.microsoft.com/v1.0/me');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Authorization: Bearer ' . $access_token,
             'Content-Type: application/json'
@@ -170,11 +260,25 @@ function testGraphAPIAccess($access_token) {
 
         $response = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
         curl_close($ch);
 
-        return $http_code === 200;
+        if ($curl_error) {
+            ErrorLogger::logAPIError("Microsoft Graph", "/v1.0/me", 0, "CURL error: $curl_error");
+            return false;
+        }
+
+        if ($http_code === 200) {
+            ErrorLogger::logSuccess("Graph API test", ['endpoint' => '/v1.0/me', 'http_code' => $http_code]);
+            return true;
+        } else {
+            ErrorLogger::logAPIError("Microsoft Graph", "/v1.0/me", $http_code, "API test failed", [
+                'response' => $response
+            ]);
+            return false;
+        }
     } catch (Exception $e) {
-        error_log("Graph API test failed: " . $e->getMessage());
+        ErrorLogger::logAPIError("Microsoft Graph", "/v1.0/me", 0, "Exception: " . $e->getMessage());
         return false;
     }
 }

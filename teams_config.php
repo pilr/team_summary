@@ -33,6 +33,11 @@ define('TEAMS_CLIENT_SECRET', $clientSecret ?: 'YOUR_CLIENT_SECRET_HERE');
 define('TEAMS_SECRET_ID', $secretId ?: 'YOUR_SECRET_ID_HERE');
 define('TEAMS_TENANT_ID', $tenantId ?: 'YOUR_TENANT_ID_HERE');
 
+// Define redirect URI dynamically based on current domain
+$protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+define('TEAMS_REDIRECT_URI', $protocol . '://' . $host . '/oauth_callback.php');
+
 // Microsoft Graph API endpoints (use tenant-specific URLs for client credentials)
 $actualTenantId = $tenantId ?: 'common';
 define('TEAMS_AUTH_URL', "https://login.microsoftonline.com/{$actualTenantId}/oauth2/v2.0/authorize");

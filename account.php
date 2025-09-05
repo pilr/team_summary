@@ -498,7 +498,7 @@ try {
                 const authUrl = new URL('https://login.microsoftonline.com/<?php echo TEAMS_TENANT_ID; ?>/oauth2/v2.0/authorize');
                 authUrl.searchParams.append('client_id', '<?php echo TEAMS_CLIENT_ID; ?>');
                 authUrl.searchParams.append('response_type', 'code');
-                authUrl.searchParams.append('redirect_uri', window.location.origin + '/oauth_callback.php');
+                authUrl.searchParams.append('redirect_uri', '<?php echo TEAMS_REDIRECT_URI; ?>');
                 authUrl.searchParams.append('scope', 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Read.All');
                 authUrl.searchParams.append('state', state);
                 authUrl.searchParams.append('prompt', 'select_account');
