@@ -22,6 +22,10 @@
       "Read(/E:\\team_summary\\api/**)",
       "Read(/E:\\team_summary/**)",
       "Read(/E:\\team_summary/**)",
+      "Read(/E:\\team_summary/**)",
+      "Read(/E:\\team_summary/**)",
+      "Read(/E:\\team_summary/**)",
+      "Read(/E:\\team_summary/**)",
       "Read(/E:\\team_summary/**)"
     ],
     "deny": [],

@@ -15,6 +15,9 @@ class ErrorLogger {
         $sessionId = session_id() ?: 'no-session';
         $userId = $_SESSION['user_id'] ?? 'no-user';
         
+        // Redact sensitive information from context
+        $context = self::redactSensitiveData($context);
+        
         // Build log entry
         $logEntry = sprintf(
             "[%s] [%s] [User: %s] [Session: %s] %s\n",
@@ -110,6 +113,39 @@ class ErrorLogger {
         $allLines = explode("\n", $content);
         
         return array_slice($allLines, -$lines);
+    }
+    
+    /**
+     * Redact sensitive information from context data
+     */
+    private static function redactSensitiveData($data) {
+        if (!is_array($data)) {
+            return $data;
+        }
+        
+        $sensitiveKeys = [
+            'client_secret',
+            'access_token',
+            'refresh_token',
+            'code',
+            'password',
+            'secret',
+            'key',
+            'authorization'
+        ];
+        
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $data[$key] = self::redactSensitiveData($value);
+            } elseif (is_string($value) && in_array(strtolower($key), $sensitiveKeys)) {
+                $data[$key] = '[REDACTED]';
+            } elseif (is_string($value) && strlen($value) > 100) {
+                // Redact very long strings that might contain tokens
+                $data[$key] = '[REDACTED - LONG STRING]';
+            }
+        }
+        
+        return $data;
     }
 }
 

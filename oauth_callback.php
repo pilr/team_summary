@@ -52,8 +52,36 @@ if (!isset($_GET['code'])) {
 $auth_code = $_GET['code'];
 $state = $_GET['state'] ?? '';
 
-// Verify state parameter (if stored in session)
-// Note: In production, you should implement proper state verification
+// Verify state parameter to prevent CSRF attacks and code reuse
+if (empty($state)) {
+    ErrorLogger::logOAuthError("state_validation", "No state parameter provided", [
+        'get_params' => $_GET
+    ]);
+    header('Location: account.php?error=invalid_state');
+    exit();
+}
+
+// Check if this authorization code has already been processed
+$processed_codes_key = 'processed_oauth_codes';
+if (!isset($_SESSION[$processed_codes_key])) {
+    $_SESSION[$processed_codes_key] = [];
+}
+
+// Create a hash of the auth code to check for duplicates
+$code_hash = hash('sha256', $auth_code);
+if (in_array($code_hash, $_SESSION[$processed_codes_key])) {
+    ErrorLogger::logOAuthError("code_reuse", "Authorization code already processed", [
+        'code_hash' => $code_hash,
+        'state' => $state
+    ]);
+    header('Location: account.php?error=code_already_used');
+    exit();
+}
+
+// Mark this code as processed
+$_SESSION[$processed_codes_key][] = $code_hash;
+// Keep only last 5 processed codes to prevent memory bloat
+$_SESSION[$processed_codes_key] = array_slice($_SESSION[$processed_codes_key], -5);
 
 try {
     // Exchange authorization code for access token
@@ -174,19 +202,33 @@ try {
                 // If table doesn't exist, try to create it
                 if ($tableCheck == 0) {
                     ErrorLogger::log("Attempting to create oauth_tokens table", [], 'INFO');
-                    $db->createOAuthTable();
-                    // Retry save
-                    $token_saved = $db->saveOAuthToken(
-                        $user_id,
-                        'microsoft',
-                        $token_response['access_token'],
-                        $token_response['refresh_token'] ?? null,
-                        $token_response['token_type'] ?? 'Bearer',
-                        $expires_at->format('Y-m-d H:i:s'),
-                        $token_response['scope'] ?? ''
-                    );
-                    if ($token_saved) {
-                        ErrorLogger::logSuccess("OAuth token saved after table creation", ['user_id' => $user_id]);
+                    try {
+                        $table_created = $db->createOAuthTable();
+                        if ($table_created) {
+                            // Retry save after successful table creation
+                            ErrorLogger::log("Table created successfully, retrying token save", ['user_id' => $user_id], 'INFO');
+                            $token_saved = $db->saveOAuthToken(
+                                $user_id,
+                                'microsoft',
+                                $token_response['access_token'],
+                                $token_response['refresh_token'] ?? null,
+                                $token_response['token_type'] ?? 'Bearer',
+                                $expires_at->format('Y-m-d H:i:s'),
+                                $token_response['scope'] ?? ''
+                            );
+                            if ($token_saved) {
+                                ErrorLogger::logSuccess("OAuth token saved after table creation", ['user_id' => $user_id]);
+                            } else {
+                                ErrorLogger::logDatabaseError("token_save_retry", "Token save still failed after table creation", ['user_id' => $user_id]);
+                            }
+                        } else {
+                            ErrorLogger::logDatabaseError("table_creation", "Table creation returned false", ['user_id' => $user_id]);
+                        }
+                    } catch (Exception $createEx) {
+                        ErrorLogger::logDatabaseError("table_creation", "Exception during table creation: " . $createEx->getMessage(), [
+                            'user_id' => $user_id,
+                            'exception' => $createEx->getMessage()
+                        ]);
                     }
                 }
             } else {

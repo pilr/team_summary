@@ -123,26 +123,56 @@ class DatabaseHelper {
      * Create oauth_tokens table if it doesn't exist
      */
     public function createOAuthTable() {
-        $sql = "
-        CREATE TABLE IF NOT EXISTS oauth_tokens (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            provider VARCHAR(50) NOT NULL DEFAULT 'microsoft',
-            access_token TEXT NOT NULL,
-            refresh_token TEXT,
-            token_type VARCHAR(20) DEFAULT 'Bearer',
-            expires_at DATETIME NOT NULL,
-            scope TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        try {
+            $sql = "
+            CREATE TABLE IF NOT EXISTS oauth_tokens (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                provider VARCHAR(50) NOT NULL DEFAULT 'microsoft',
+                access_token TEXT NOT NULL,
+                refresh_token TEXT,
+                token_type VARCHAR(20) DEFAULT 'Bearer',
+                expires_at DATETIME NOT NULL,
+                scope TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                
+                UNIQUE KEY unique_user_provider (user_id, provider),
+                INDEX idx_user_provider (user_id, provider),
+                INDEX idx_expires_at (expires_at)
+            ) ENGINE=InnoDB";
             
-            UNIQUE KEY unique_user_provider (user_id, provider),
-            INDEX idx_user_provider (user_id, provider),
-            INDEX idx_expires_at (expires_at)
-        ) ENGINE=InnoDB";
-        
-        $this->pdo->exec($sql);
-        error_log("OAuth tokens table created successfully");
+            $result = $this->pdo->exec($sql);
+            
+            // Verify table was created
+            $tableCheck = $this->pdo->query("SHOW TABLES LIKE 'oauth_tokens'")->rowCount();
+            
+            if (class_exists('ErrorLogger')) {
+                if ($tableCheck > 0) {
+                    ErrorLogger::logSuccess("OAuth tokens table created/verified", [
+                        'table_exists' => 'YES',
+                        'sql_result' => $result
+                    ]);
+                } else {
+                    ErrorLogger::logDatabaseError("table_creation", "Table creation verification failed", [
+                        'sql_result' => $result,
+                        'table_exists' => 'NO'
+                    ]);
+                }
+            }
+            
+            error_log("OAuth tokens table created/verified successfully - exists: " . ($tableCheck > 0 ? 'YES' : 'NO'));
+            return $tableCheck > 0;
+        } catch (PDOException $e) {
+            if (class_exists('ErrorLogger')) {
+                ErrorLogger::logDatabaseError("table_creation", "Failed to create oauth_tokens table: " . $e->getMessage(), [
+                    'sql_error' => $e->getMessage(),
+                    'error_code' => $e->getCode()
+                ]);
+            }
+            error_log("Failed to create oauth_tokens table: " . $e->getMessage());
+            throw $e;
+        }
     }
     
     public function getOAuthToken($user_id, $provider) {

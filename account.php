@@ -33,6 +33,40 @@ if (!$user_id) {
 $success_message = '';
 $error_message = '';
 
+// Handle OAuth callback results
+if (isset($_GET['success']) && $_GET['success'] === 'teams_connected') {
+    $success_message = 'Microsoft Teams connected successfully! You can now access your Teams data.';
+} elseif (isset($_GET['warning']) && $_GET['warning'] === 'teams_connected_limited') {
+    $error_message = 'Teams connected but with limited access. Some features may not work properly.';
+} elseif (isset($_GET['error'])) {
+    switch ($_GET['error']) {
+        case 'oauth_failed':
+            $error_message = 'OAuth authentication failed: ' . (htmlspecialchars($_GET['message'] ?? 'Unknown error'));
+            break;
+        case 'no_auth_code':
+            $error_message = 'No authorization code received from Microsoft. Please try connecting again.';
+            break;
+        case 'connection_failed':
+            $error_message = 'Connection failed: ' . (htmlspecialchars($_GET['message'] ?? 'Unknown error'));
+            break;
+        case 'invalid_state':
+            $error_message = 'Invalid state parameter. Please try connecting again.';
+            break;
+        case 'code_already_used':
+            $error_message = 'This authorization code has already been used. Please try connecting again.';
+            break;
+        case 'session_expired':
+            $error_message = 'Your session has expired. Please log in again.';
+            break;
+        case 'invalid_session':
+            $error_message = 'Invalid session. Please log in again.';
+            break;
+        default:
+            $error_message = 'An error occurred: ' . htmlspecialchars($_GET['error']);
+            break;
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
