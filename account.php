@@ -246,17 +246,17 @@ try {
                         <i class="fas fa-bell"></i>
                         <span class="notification-badge">3</span>
                     </button>
-                    <button class="settings-btn">
+                    <a href="settings.php" class="settings-btn">
                         <i class="fas fa-cog"></i>
-                    </button>
-                    <div class="user-profile">
+                    </a>
+                    <a href="account.php" class="user-profile">
                         <img data-src="https://ui-avatars.com/api/?name=<?php echo urlencode($user_name); ?>&background=6366f1&color=fff&format=svg" alt="User Avatar" class="user-avatar" loading="lazy">
                         <div class="user-info">
                             <span class="user-name"><?php echo htmlspecialchars($user_name); ?></span>
                             <span class="user-email"><?php echo htmlspecialchars($user_email); ?></span>
                         </div>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
+                    </a>
                 </div>
             </header>
 

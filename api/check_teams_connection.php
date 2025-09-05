@@ -29,8 +29,24 @@ try {
     
     ErrorLogger::log("Checking Teams connection", ['user_id' => $user_id], 'INFO');
     
+    // First check directly in database
+    require_once '../database_helper.php';
+    $db = new DatabaseHelper();
+    $token_info = $db->getOAuthToken($user_id, 'microsoft');
+    
+    ErrorLogger::log("Direct database token check", [
+        'user_id' => $user_id,
+        'token_found' => $token_info !== null,
+        'token_expires' => $token_info['expires_at'] ?? null
+    ], 'DEBUG');
+    
     // Use persistent service to check connection status
     $status = $persistentTeamsService->getUserTeamsStatus($user_id);
+    
+    ErrorLogger::log("Persistent service status", [
+        'user_id' => $user_id,
+        'status' => $status
+    ], 'DEBUG');
     
     if ($status['status'] === 'connected') {
         // Test actual API access

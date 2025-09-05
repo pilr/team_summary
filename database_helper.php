@@ -191,6 +191,7 @@ class DatabaseHelper {
             ");
             $stmt->execute([$user_id, $provider]);
             $result = $stmt->fetch();
+            $stmt->closeCursor(); // Close cursor for consistency
             
             if ($result) {
                 error_log("DatabaseHelper: Token found for user $user_id, expires: " . $result['expires_at']);
