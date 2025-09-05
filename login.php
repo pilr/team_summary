@@ -7,10 +7,52 @@ require_once 'error_logger.php';
 // Initialize variables
 $error_message = '';
 
+// Handle OAuth-related error messages
+if (isset($_GET['error'])) {
+    switch ($_GET['error']) {
+        case 'session_expired':
+            $error_message = 'Your session has expired. Please log in again.';
+            break;
+        case 'invalid_session':
+            $error_message = 'Invalid session detected. Please log in again.';
+            break;
+        case 'invalid_user':
+            $error_message = 'User account not found. Please contact support.';
+            break;
+        case 'session_mismatch':
+            $error_message = 'Session validation failed. Please log in again.';
+            break;
+        case 'database_error':
+            $error_message = 'Database connection error. Please try again later.';
+            break;
+        default:
+            $error_message = 'An error occurred. Please try logging in again.';
+    }
+}
+
 // Check if user is already logged in
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
-    header('Location: index.php');
-    exit();
+    // Verify session is still valid
+    $user_id = $_SESSION['user_id'] ?? null;
+    if ($user_id) {
+        try {
+            global $db;
+            $stmt = $db->getPDO()->prepare("SELECT id FROM users WHERE id = ? AND status = 'active'");
+            $stmt->execute([$user_id]);
+            if ($stmt->fetch()) {
+                header('Location: index.php');
+                exit();
+            } else {
+                // Invalid user, clear session
+                session_destroy();
+                $error_message = 'Your account status has changed. Please log in again.';
+            }
+        } catch (Exception $e) {
+            // Database error, clear session to be safe
+            session_destroy();
+            $error_message = 'Session validation failed. Please log in again.';
+        }
+    }
 }
 
 // Handle form submission
