@@ -28,7 +28,7 @@ class DatabaseHelper {
                     PDO::ATTR_EMULATE_PREPARES => false,
                     // Performance optimizations
                     PDO::ATTR_PERSISTENT => true, // Use persistent connections
-                    PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false, // Use unbuffered queries for large results
+                    PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true, // Use buffered queries to prevent "Cannot execute queries while other unbuffered queries are active" error
                     PDO::MYSQL_ATTR_INIT_COMMAND => "SET sql_mode='TRADITIONAL',time_zone='+00:00'", // Set consistent timezone
                 ]
             );
@@ -49,7 +49,10 @@ class DatabaseHelper {
             
             // First check if oauth_tokens table exists
             $tableCheck = $this->pdo->query("SHOW TABLES LIKE 'oauth_tokens'");
-            if ($tableCheck->rowCount() == 0) {
+            $tableExists = $tableCheck->rowCount() > 0;
+            $tableCheck->closeCursor(); // Close the cursor to free up the connection
+            
+            if (!$tableExists) {
                 error_log("OAuth tokens table does not exist. Creating it...");
                 $this->createOAuthTable();
             }
@@ -107,6 +110,7 @@ class DatabaseHelper {
                 error_log("Failed to execute OAuth token save for user $user_id. Error: " . json_encode($errorInfo));
             }
             
+            $stmt->closeCursor(); // Close cursor to ensure clean connection state
             return $result;
         } catch (PDOException $e) {
             error_log("Save OAuth token PDO exception: " . $e->getMessage());
@@ -145,7 +149,9 @@ class DatabaseHelper {
             $result = $this->pdo->exec($sql);
             
             // Verify table was created
-            $tableCheck = $this->pdo->query("SHOW TABLES LIKE 'oauth_tokens'")->rowCount();
+            $tableCheckStmt = $this->pdo->query("SHOW TABLES LIKE 'oauth_tokens'");
+            $tableCheck = $tableCheckStmt->rowCount();
+            $tableCheckStmt->closeCursor(); // Close the cursor to free up the connection
             
             if (class_exists('ErrorLogger')) {
                 if ($tableCheck > 0) {

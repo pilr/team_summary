@@ -192,7 +192,9 @@ try {
         try {
             $pdo = $db->getPDO();
             if ($pdo) {
-                $tableCheck = $pdo->query("SHOW TABLES LIKE 'oauth_tokens'")->rowCount();
+                $tableCheckStmt = $pdo->query("SHOW TABLES LIKE 'oauth_tokens'");
+                $tableCheck = $tableCheckStmt->rowCount();
+                $tableCheckStmt->closeCursor(); // Close cursor to prevent query conflicts
                 ErrorLogger::log("Database diagnostic", [
                     'connection_status' => 'OK',
                     'oauth_tokens_table_exists' => $tableCheck > 0 ? 'YES' : 'NO',
