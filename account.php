@@ -25,6 +25,26 @@ if ($current_user['session_refreshed']) {
     error_log("Account.php: Session data refreshed for user {$user_id} - {$user_email}");
 }
 
+// Load user-specific API credentials from api_keys table
+global $db;
+if (!$db) {
+    $db = new DatabaseHelper();
+}
+
+$stmt = $db->getPDO()->prepare("SELECT client_id, client_secret, tenant_id FROM api_keys WHERE user_id = ?");
+$stmt->execute([$user_id]);
+$user_credentials = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Set credentials for OAuth (user-specific or fallback to system)
+if ($user_credentials && !empty($user_credentials['client_id']) && !empty($user_credentials['client_secret']) && !empty($user_credentials['tenant_id'])) {
+    $oauth_client_id = $user_credentials['client_id'];
+    $oauth_tenant_id = $user_credentials['tenant_id'];
+} else {
+    // Fallback to system configuration
+    $oauth_client_id = TEAMS_CLIENT_ID;
+    $oauth_tenant_id = TEAMS_TENANT_ID;
+}
+
 // Handle form submissions
 $success_message = '';
 $error_message = '';
@@ -525,8 +545,8 @@ try {
                 const state = Math.random().toString(36).substring(2, 15);
                 sessionStorage.setItem('oauth_state', state);
                 
-                const authUrl = new URL('https://login.microsoftonline.com/<?php echo TEAMS_TENANT_ID; ?>/oauth2/v2.0/authorize');
-                authUrl.searchParams.append('client_id', '<?php echo TEAMS_CLIENT_ID; ?>');
+                const authUrl = new URL('https://login.microsoftonline.com/<?php echo $oauth_tenant_id; ?>/oauth2/v2.0/authorize');
+                authUrl.searchParams.append('client_id', '<?php echo $oauth_client_id; ?>');
                 authUrl.searchParams.append('response_type', 'code');
                 authUrl.searchParams.append('redirect_uri', '<?php echo TEAMS_REDIRECT_URI; ?>');
                 authUrl.searchParams.append('scope', 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Read.All');

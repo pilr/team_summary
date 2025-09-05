@@ -30,7 +30,7 @@ if (!$user_id) {
 }
 
 try {
-    // Get user-specific OpenAI API key from database settings
+    // Get user-specific OpenAI API key from api_keys table
     require_once '../database_helper.php';
     global $db;
     
@@ -38,8 +38,15 @@ try {
         $db = new DatabaseHelper();
     }
     
-    $user_settings = $db->getUserSettings($user_id);
-    $openai_key = trim($user_settings['openai_api_key'] ?? '');
+    // Check api_keys table for user's OpenAI API key
+    $stmt = $db->getPDO()->prepare("SELECT openai_api_key FROM api_keys WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $api_keys = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    $openai_key = '';
+    if ($api_keys && !empty(trim($api_keys['openai_api_key']))) {
+        $openai_key = trim($api_keys['openai_api_key']);
+    }
     
     // If user hasn't set their own key, fall back to system key
     if (empty($openai_key)) {
@@ -56,7 +63,7 @@ try {
     if (empty($openai_key) || strlen($openai_key) < 10) {
         echo json_encode([
             'success' => false, 
-            'error' => 'No OpenAI API key configured. Please add your API key in Settings → API Keys.',
+            'error' => 'No OpenAI API key configured. Please contact your administrator to configure API access.',
             'service_status' => 'not_configured'
         ]);
         exit;
@@ -66,7 +73,7 @@ try {
     if (!preg_match('/^sk-[a-zA-Z0-9\-_]+$/', $openai_key)) {
         echo json_encode([
             'success' => false, 
-            'error' => 'Invalid OpenAI API key format. Please check your API key in Settings → API Keys.',
+            'error' => 'Invalid OpenAI API key format. Please contact your administrator to update the API configuration.',
             'service_status' => 'invalid_key'
         ]);
         exit;
@@ -85,9 +92,7 @@ try {
     $teamsAPI = $userTeamsAPI;
     
     // Get user's custom AI prompt from settings
-    require_once '../database_helper.php';
-    $dbHelper = new DatabaseHelper();
-    $user_settings = $dbHelper->getUserSettings($user_id);
+    $user_settings = $db->getUserSettings($user_id);
     
     // Default AI prompt if user hasn't customized it
     $defaultPrompt = 'Please analyze these Microsoft Teams messages and provide a comprehensive summary including:

@@ -81,16 +81,38 @@ $_SESSION[$processed_codes_key][] = $code_hash;
 $_SESSION[$processed_codes_key] = array_slice($_SESSION[$processed_codes_key], -5);
 
 try {
+    // Load user-specific credentials from api_keys table or fallback to system config
+    global $db;
+    if (!$db) {
+        $db = new DatabaseHelper();
+    }
+    
+    $stmt = $db->getPDO()->prepare("SELECT client_id, client_secret, tenant_id FROM api_keys WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $credentials = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($credentials && !empty($credentials['client_id']) && !empty($credentials['client_secret']) && !empty($credentials['tenant_id'])) {
+        $client_id = $credentials['client_id'];
+        $client_secret = $credentials['client_secret'];
+        $tenant_id = $credentials['tenant_id'];
+    } else {
+        // Fallback to system configuration
+        $client_id = TEAMS_CLIENT_ID;
+        $client_secret = TEAMS_CLIENT_SECRET;
+        $tenant_id = TEAMS_TENANT_ID;
+    }
+    
     // Exchange authorization code for access token
     $token_data = [
-        'client_id' => TEAMS_CLIENT_ID,
-        'client_secret' => TEAMS_CLIENT_SECRET,
+        'client_id' => $client_id,
+        'client_secret' => $client_secret,
         'code' => $auth_code,
         'grant_type' => 'authorization_code',
         'redirect_uri' => TEAMS_REDIRECT_URI
     ];
 
-    $ch = curl_init(TEAMS_TOKEN_URL);
+    $token_url = "https://login.microsoftonline.com/{$tenant_id}/oauth2/v2.0/token";
+    $ch = curl_init($token_url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($token_data));
@@ -135,7 +157,6 @@ try {
     $expires_at->add(new DateInterval("PT{$expires_in}S"));
 
     // Save token to database
-    global $db;
     
     // Debug: Check if $db is properly initialized
     if (!$db) {

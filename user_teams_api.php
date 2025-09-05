@@ -9,10 +9,35 @@ class UserTeamsAPIHelper {
     private $user_id;
     private $db;
     private $access_token;
+    private $client_id;
+    private $client_secret;
+    private $tenant_id;
     
     public function __construct($user_id) {
         $this->user_id = $user_id;
         $this->db = new DatabaseHelper();
+        $this->loadApiCredentials();
+    }
+    
+    /**
+     * Load API credentials from api_keys table or fallback to system config
+     */
+    private function loadApiCredentials() {
+        // Load credentials from api_keys table
+        $stmt = $this->db->getPDO()->prepare("SELECT client_id, client_secret, tenant_id FROM api_keys WHERE user_id = ?");
+        $stmt->execute([$this->user_id]);
+        $credentials = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($credentials && !empty($credentials['client_id']) && !empty($credentials['client_secret']) && !empty($credentials['tenant_id'])) {
+            $this->client_id = $credentials['client_id'];
+            $this->client_secret = $credentials['client_secret'];
+            $this->tenant_id = $credentials['tenant_id'];
+        } else {
+            // Fallback to system configuration from teams_config.php
+            $this->client_id = TEAMS_CLIENT_ID;
+            $this->client_secret = TEAMS_CLIENT_SECRET;
+            $this->tenant_id = TEAMS_TENANT_ID;
+        }
     }
     
     /**
@@ -74,13 +99,14 @@ class UserTeamsAPIHelper {
     private function refreshAccessToken($refresh_token) {
         try {
             $token_data = [
-                'client_id' => TEAMS_CLIENT_ID,
-                'client_secret' => TEAMS_CLIENT_SECRET,
+                'client_id' => $this->client_id,
+                'client_secret' => $this->client_secret,
                 'refresh_token' => $refresh_token,
                 'grant_type' => 'refresh_token'
             ];
 
-            $ch = curl_init(TEAMS_TOKEN_URL);
+            $token_url = "https://login.microsoftonline.com/{$this->tenant_id}/oauth2/v2.0/token";
+            $ch = curl_init($token_url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 30);
@@ -133,7 +159,7 @@ class UserTeamsAPIHelper {
             return false;
         }
         
-        $url = TEAMS_GRAPH_URL . $endpoint;
+        $url = 'https://graph.microsoft.com/v1.0' . $endpoint;
         
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
