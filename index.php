@@ -2,29 +2,20 @@
 ob_start(); // Start output buffering
 session_start();
 require_once 'database_helper.php';
+require_once 'session_validator.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    // Debug: Log why redirect is happening
-    error_log("Index.php redirect to login. Session ID: " . session_id());
-    error_log("Session logged_in value: " . (isset($_SESSION['logged_in']) ? ($_SESSION['logged_in'] ? 'true' : 'false') : 'not set'));
-    error_log("Full session data: " . print_r($_SESSION, true));
-    
-    header('Location: login.php');
-    exit();
-}
+// Use unified session validation
+$current_user = SessionValidator::requireAuth();
 
-// Get user information from session (all from database)
-$user_name = $_SESSION['user_name'] ?? 'Unknown User';
-$user_email = $_SESSION['user_email'] ?? '';
+// Get user information with guaranteed consistency
+$user_id = $current_user['id'];
+$user_name = $current_user['name'];
+$user_email = $current_user['email'];
 $login_time = $_SESSION['login_time'] ?? date('Y-m-d H:i:s');
-$user_id = $_SESSION['user_id'] ?? null;
 
-// If user_id is missing, redirect to login (database authentication required)
-if (!$user_id) {
-    error_log("Missing user_id in session, redirecting to login");
-    header('Location: login.php');
-    exit();
+// Log session refresh if it occurred
+if ($current_user['session_refreshed']) {
+    error_log("Index.php: Session data refreshed for user {$user_id} - {$user_email}");
 }
 
 // Try to get data from database, fall back to mock data if database unavailable

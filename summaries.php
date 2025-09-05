@@ -7,23 +7,19 @@ ini_set('memory_limit', '256M');
 set_time_limit(30); // Set reasonable time limit
 
 require_once 'teams_api.php';
+require_once 'session_validator.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header('Location: login.php');
-    exit();
-}
+// Use unified session validation
+$current_user = SessionValidator::requireAuth();
 
-// Get user information from session (all from database)
-$user_name = $_SESSION['user_name'] ?? 'Unknown User';
-$user_email = $_SESSION['user_email'] ?? '';
-$user_id = $_SESSION['user_id'] ?? null;
+// Get user information with guaranteed consistency
+$user_id = $current_user['id'];
+$user_name = $current_user['name'];
+$user_email = $current_user['email'];
 
-// If user_id is missing, redirect to login (database authentication required)
-if (!$user_id) {
-    error_log("Missing user_id in session, redirecting to login");
-    header('Location: login.php');
-    exit();
+// Log session refresh if it occurred
+if ($current_user['session_refreshed']) {
+    error_log("Summaries.php: Session data refreshed for user {$user_id} - {$user_email}");
 }
 
 // Initialize Teams API - check if user has connected their Microsoft account

@@ -3,76 +3,26 @@ session_start();
 require_once 'teams_config.php';
 require_once 'database_helper.php';
 require_once 'error_logger.php';
+require_once 'session_validator.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header('Location: login.php?error=session_expired');
-    exit();
-}
+// Use unified session validation for OAuth callback
+$current_user = SessionValidator::requireAuth();
 
-$user_id = $_SESSION['user_id'] ?? null;
-$user_name = $_SESSION['user_name'] ?? 'Unknown';
-$user_email = $_SESSION['user_email'] ?? 'Unknown';
+// Get user information with guaranteed consistency
+$user_id = $current_user['id'];
+$user_name = $current_user['name'];
+$user_email = $current_user['email'];
 
-// Enhanced session validation - verify user exists in database
-if (!$user_id) {
-    ErrorLogger::logOAuthError("callback_validation", "No user_id in session", [
-        'session_data' => $_SESSION,
-        'redirect' => 'login.php?error=invalid_session'
-    ]);
-    header('Location: login.php?error=invalid_session');
-    exit();
-}
+// Log session details for OAuth callback
+ErrorLogger::log("OAuth Callback: Validated user session", [
+    'user_id' => $user_id,
+    'user_email' => $user_email,
+    'user_name' => $user_name,
+    'session_refreshed' => $current_user['session_refreshed'] ?? false
+]);
 
-// Verify the user_id corresponds to a valid user in the database
-try {
-    global $db;
-    $stmt = $db->getPDO()->prepare("SELECT id, email, display_name FROM users WHERE id = ? AND status = 'active'");
-    $stmt->execute([$user_id]);
-    $dbUser = $stmt->fetch();
-    
-    if (!$dbUser) {
-        ErrorLogger::logOAuthError("callback_validation", "User ID from session not found in database", [
-            'session_user_id' => $user_id,
-            'session_email' => $user_email,
-            'redirect' => 'login.php?error=invalid_user'
-        ]);
-        // Clear session and redirect to login
-        session_destroy();
-        header('Location: login.php?error=invalid_user');
-        exit();
-    }
-    
-    // Additional validation: ensure session email matches database email
-    if ($dbUser['email'] !== $user_email) {
-        ErrorLogger::logOAuthError("callback_validation", "Session email mismatch with database", [
-            'session_user_id' => $user_id,
-            'session_email' => $user_email,
-            'database_email' => $dbUser['email'],
-            'redirect' => 'login.php?error=session_mismatch'
-        ]);
-        // Clear session and redirect to login
-        session_destroy();
-        header('Location: login.php?error=session_mismatch');
-        exit();
-    }
-    
-    ErrorLogger::log("OAuth Callback: Validated user session", [
-        'user_id' => $user_id,
-        'user_email' => $user_email,
-        'user_name' => $user_name,
-        'database_verified' => true
-    ]);
-    
-} catch (Exception $dbError) {
-    ErrorLogger::logOAuthError("callback_validation", "Database error during user validation: " . $dbError->getMessage(), [
-        'session_user_id' => $user_id,
-        'session_email' => $user_email,
-        'exception' => $dbError->getMessage()
-    ]);
-    header('Location: login.php?error=database_error');
-    exit();
-}
+// Session validation is now handled by SessionValidator::requireAuth()
+// All validation (user exists, email matches, etc.) is already done
 
 // Handle OAuth callback
 if (isset($_GET['error'])) {

@@ -1,24 +1,20 @@
 <?php
 session_start();
 require_once 'database_helper.php';
+require_once 'session_validator.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header('Location: login.php');
-    exit();
-}
+// Use unified session validation
+$current_user = SessionValidator::requireAuth();
 
-// Get user information from session (all from database)
-$user_name = $_SESSION['user_name'] ?? 'Unknown User';
-$user_email = $_SESSION['user_email'] ?? '';
-$user_id = $_SESSION['user_id'] ?? null;
+// Get user information with guaranteed consistency
+$user_id = $current_user['id'];
+$user_name = $current_user['name'];
+$user_email = $current_user['email'];
 $login_method = $_SESSION['login_method'] ?? 'database';
 
-// If user_id is missing, redirect to login (database authentication required)
-if (!$user_id) {
-    error_log("Missing user_id in session, redirecting to login");
-    header('Location: login.php');
-    exit();
+// Log session refresh if it occurred
+if ($current_user['session_refreshed']) {
+    error_log("Settings.php: Session data refreshed for user {$user_id} - {$user_email}");
 }
 
 // Handle form submissions
