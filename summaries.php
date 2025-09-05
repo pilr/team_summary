@@ -1516,14 +1516,20 @@ function getBadgeText($type) {
                         
                         contentDiv.innerHTML = summaryHtml;
                     } else {
+                        // Check if it's a service unavailable error
+                        const isServiceUnavailable = data.service_status === 'disabled';
+                        const errorIcon = isServiceUnavailable ? 'fas fa-info-circle' : 'fas fa-exclamation-triangle';
+                        const retryButton = isServiceUnavailable ? '' : `
+                            <button class="generate-ai-summary-btn" onclick="generateAISummary()" style="margin-top: 1rem; position: static; transform: none;">
+                                <i class="fas fa-retry"></i> Try Again
+                            </button>`;
+                        
                         contentDiv.innerHTML = `
-                            <div class="ai-error">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <p><strong>Failed to generate AI summary</strong></p>
+                            <div class="ai-error ${isServiceUnavailable ? 'ai-service-unavailable' : ''}">
+                                <i class="${errorIcon}"></i>
+                                <p><strong>${isServiceUnavailable ? 'AI Summary Service Unavailable' : 'Failed to generate AI summary'}</strong></p>
                                 <p>${data.error || 'Unknown error occurred'}</p>
-                                <button class="generate-ai-summary-btn" onclick="generateAISummary()" style="margin-top: 1rem; position: static; transform: none;">
-                                    <i class="fas fa-retry"></i> Try Again
-                                </button>
+                                ${retryButton}
                             </div>
                         `;
                     }

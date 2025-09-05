@@ -44,9 +44,13 @@ try {
         exit;
     }
     
-    // Validate key format (should start with sk-)
-    if (!preg_match('/^sk-[a-zA-Z0-9\-_]+$/', $openai_key)) {
-        echo json_encode(['success' => false, 'error' => 'Invalid OpenAI API key format']);
+    // Check if OpenAI service is disabled
+    if ($openai_key === 'DISABLED_OPENAI_SERVICE_UNAVAILABLE' || !preg_match('/^sk-[a-zA-Z0-9\-_]+$/', $openai_key)) {
+        echo json_encode([
+            'success' => false, 
+            'error' => 'AI Summary service is temporarily unavailable. Please try again later or contact support if this persists.',
+            'service_status' => 'disabled'
+        ]);
         exit;
     }
     
