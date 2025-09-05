@@ -30,26 +30,44 @@ if (!$user_id) {
 }
 
 try {
-    // Get OpenAI API key
-    $openai_file = '../openai.txt';
-    if (!file_exists($openai_file)) {
-        echo json_encode(['success' => false, 'error' => 'OpenAI key file not found']);
-        exit;
+    // Get user-specific OpenAI API key from database settings
+    require_once '../database_helper.php';
+    global $db;
+    
+    if (!$db) {
+        $db = new DatabaseHelper();
     }
     
-    $openai_key = trim(file_get_contents($openai_file));
+    $user_settings = $db->getUserSettings($user_id);
+    $openai_key = trim($user_settings['openai_api_key'] ?? '');
     
+    // If user hasn't set their own key, fall back to system key
+    if (empty($openai_key)) {
+        $openai_file = '../openai.txt';
+        if (file_exists($openai_file)) {
+            $system_key = trim(file_get_contents($openai_file));
+            if ($system_key !== 'DISABLED_OPENAI_SERVICE_UNAVAILABLE' && preg_match('/^sk-[a-zA-Z0-9\-_]+$/', $system_key)) {
+                $openai_key = $system_key;
+            }
+        }
+    }
+    
+    // Check if we have a valid API key
     if (empty($openai_key) || strlen($openai_key) < 10) {
-        echo json_encode(['success' => false, 'error' => 'Invalid OpenAI API key']);
-        exit;
-    }
-    
-    // Check if OpenAI service is disabled
-    if ($openai_key === 'DISABLED_OPENAI_SERVICE_UNAVAILABLE' || !preg_match('/^sk-[a-zA-Z0-9\-_]+$/', $openai_key)) {
         echo json_encode([
             'success' => false, 
-            'error' => 'AI Summary service is temporarily unavailable. Please try again later or contact support if this persists.',
-            'service_status' => 'disabled'
+            'error' => 'No OpenAI API key configured. Please add your API key in Settings → API Keys.',
+            'service_status' => 'not_configured'
+        ]);
+        exit;
+    }
+    
+    // Validate key format
+    if (!preg_match('/^sk-[a-zA-Z0-9\-_]+$/', $openai_key)) {
+        echo json_encode([
+            'success' => false, 
+            'error' => 'Invalid OpenAI API key format. Please check your API key in Settings → API Keys.',
+            'service_status' => 'invalid_key'
         ]);
         exit;
     }

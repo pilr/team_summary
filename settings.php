@@ -734,9 +734,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
 
                                 <div class="form-actions">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save"></i> Save API Configuration
+                                    <button type="submit" class="btn btn-primary" id="saveApiKeysBtn">
+                                        <i class="fas fa-save"></i> 
+                                        <span class="btn-text">Save API Configuration</span>
+                                        <i class="fas fa-spinner fa-spin loading-spinner" style="display: none;"></i>
                                     </button>
+                                    <div class="save-status" id="apiKeysSaveStatus" style="display: none;"></div>
                                 </div>
                             </form>
                         </div>
@@ -816,12 +819,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
 
                                 <div class="form-actions">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save"></i> Save Teams Configuration
+                                    <button type="submit" class="btn btn-primary" id="saveTeamsConfigBtn">
+                                        <i class="fas fa-save"></i> 
+                                        <span class="btn-text">Save Teams Configuration</span>
+                                        <i class="fas fa-spinner fa-spin loading-spinner" style="display: none;"></i>
                                     </button>
                                     <button type="button" class="btn btn-secondary" onclick="testTeamsConnection()">
                                         <i class="fas fa-plug"></i> Test Connection
                                     </button>
+                                    <div class="save-status" id="teamsConfigSaveStatus" style="display: none;"></div>
                                 </div>
                             </form>
                         </div>
@@ -995,6 +1001,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 textarea.style.height = textarea.scrollHeight + 'px';
             }
         }
+
+        // Enhanced save button functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add form submission handling for API Keys
+            const apiKeysForm = document.querySelector('form[data-form="api-keys"]') || 
+                               document.querySelector('#api-keys-settings form');
+            if (apiKeysForm) {
+                apiKeysForm.addEventListener('submit', function(e) {
+                    handleFormSubmission(e, 'saveApiKeysBtn', 'apiKeysSaveStatus', 'API configuration');
+                });
+            }
+            
+            // Add form submission handling for Teams Config
+            const teamsConfigForm = document.querySelector('form[data-form="teams-config"]') || 
+                                   document.querySelector('#teams-config-settings form');
+            if (teamsConfigForm) {
+                teamsConfigForm.addEventListener('submit', function(e) {
+                    handleFormSubmission(e, 'saveTeamsConfigBtn', 'teamsConfigSaveStatus', 'Teams configuration');
+                });
+            }
+        });
+
+        function handleFormSubmission(event, buttonId, statusId, configType) {
+            const button = document.getElementById(buttonId);
+            const status = document.getElementById(statusId);
+            
+            if (button && status) {
+                const btnText = button.querySelector('.btn-text');
+                const spinner = button.querySelector('.loading-spinner');
+                const icon = button.querySelector('i:first-child');
+                
+                // Show loading state
+                button.disabled = true;
+                if (btnText) btnText.textContent = 'Saving...';
+                if (spinner) spinner.style.display = 'inline';
+                if (icon) icon.style.display = 'none';
+                
+                status.style.display = 'none';
+                
+                // The form will submit normally, but we'll show feedback after page reload
+                // Store the action in sessionStorage for feedback after redirect
+                sessionStorage.setItem('pendingSave', JSON.stringify({
+                    type: configType,
+                    timestamp: Date.now()
+                }));
+            }
+        }
+
+        // Show feedback after page reload
+        window.addEventListener('load', function() {
+            const pendingSave = sessionStorage.getItem('pendingSave');
+            if (pendingSave) {
+                try {
+                    const saveData = JSON.parse(pendingSave);
+                    // Only show if it's recent (within 5 seconds)
+                    if (Date.now() - saveData.timestamp < 5000) {
+                        // Check for success/error messages from PHP
+                        const successMessage = document.querySelector('.alert.alert-success');
+                        const errorMessage = document.querySelector('.alert.alert-error');
+                        
+                        if (successMessage || errorMessage) {
+                            // Add a small delay to ensure the message is visible
+                            setTimeout(() => {
+                                const message = successMessage || errorMessage;
+                                message.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }, 100);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error parsing pending save data:', e);
+                }
+                sessionStorage.removeItem('pendingSave');
+            }
+        });
 
         // Test Teams connection
         function testTeamsConnection() {
@@ -1493,6 +1573,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         #api-keys-settings .setting-item input[type="password"] {
             font-family: 'Courier New', monospace;
             font-size: 0.875rem;
+        }
+
+        /* Save button loading states */
+        .btn .loading-spinner {
+            margin-left: 0.5rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .save-status {
+            margin-left: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .save-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .save-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Alert message styling */
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+
+        .alert.alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .alert.alert-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .alert i {
+            margin-right: 0.5rem;
         }
     </style>
 </body>
