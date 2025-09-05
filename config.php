@@ -8,7 +8,7 @@ define('DB_USER', 'u175828155_team_summary');
 define('DB_PASS', 'x[=5Pja3O');
 
 // Application settings
-define('APP_NAME', 'TeamSummary');
+define('APP_NAME', 'TeamsSummary');
 define('APP_VERSION', '1.0.0');
 define('APP_URL', 'https://teamsummary.seriousweb.dev/');
 
@@ -43,6 +43,11 @@ date_default_timezone_set('America/New_York');
 // Error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+
+// Disable caching sitewide
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 // Function to get database connection (for future use)
 function getDatabaseConnection() {

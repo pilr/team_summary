@@ -1,10 +1,9 @@
 <?php
-// Enable error reporting for debugging HTTP 500 errors
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 ob_start(); // Start output buffering
+
+// Load config BEFORE session_start to configure session settings
+require_once 'config.php';
+
 session_start();
 
 // Performance optimizations
