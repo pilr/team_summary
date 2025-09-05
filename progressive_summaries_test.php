@@ -11,8 +11,13 @@ set_time_limit(30);
 require_once 'teams_api.php';
 require_once 'session_validator.php';
 
-// Use unified session validation
-$current_user = SessionValidator::requireAuth(false); // Don't redirect on failure
+// Use unified session validation  
+try {
+    $current_user = SessionValidator::getCurrentUser();
+} catch (Exception $e) {
+    echo "Session validation failed: " . $e->getMessage() . "\n";
+    $current_user = null;
+}
 
 if (!$current_user) {
     echo "No valid session - using test user\n";

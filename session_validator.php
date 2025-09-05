@@ -12,6 +12,12 @@ class SessionValidator {
      */
     public static function getCurrentUser($force_refresh = false) {
         global $db;
+        
+        // Ensure database connection exists
+        if (!$db) {
+            require_once 'database_helper.php';
+            $db = new DatabaseHelper();
+        }
         self::$db = $db;
         
         // Start session if not already started

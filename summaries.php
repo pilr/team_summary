@@ -10,8 +10,15 @@ session_start();
 ini_set('memory_limit', '256M');
 set_time_limit(30); // Set reasonable time limit
 
+require_once 'database_helper.php';
 require_once 'teams_api.php';
 require_once 'session_validator.php';
+
+// Initialize global database connection
+global $db;
+if (!$db) {
+    $db = new DatabaseHelper();
+}
 
 // Use unified session validation
 $current_user = SessionValidator::requireAuth();
