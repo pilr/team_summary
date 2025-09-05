@@ -43,7 +43,7 @@ class DatabaseHelper {
     // OAUTH TOKEN MANAGEMENT FUNCTIONS
     // ==========================================
     
-    public function saveOAuthToken($user_id, $provider, $access_token, $refresh_token = null, $token_type = 'Bearer', $expires_at, $scope = '') {
+    public function saveOAuthToken($user_id, $provider, $access_token, $expires_at, $refresh_token = null, $token_type = 'Bearer', $scope = '') {
         try {
             error_log("DatabaseHelper: saveOAuthToken called for user_id=$user_id, provider=$provider");
             

@@ -173,9 +173,9 @@ try {
         $user_id,
         'microsoft',
         $token_response['access_token'],
+        $expires_at->format('Y-m-d H:i:s'),
         $token_response['refresh_token'] ?? null,
         $token_response['token_type'] ?? 'Bearer',
-        $expires_at->format('Y-m-d H:i:s'),
         $token_response['scope'] ?? ''
     );
 
@@ -210,9 +210,9 @@ try {
                                 $user_id,
                                 'microsoft',
                                 $token_response['access_token'],
+                                $expires_at->format('Y-m-d H:i:s'),
                                 $token_response['refresh_token'] ?? null,
                                 $token_response['token_type'] ?? 'Bearer',
-                                $expires_at->format('Y-m-d H:i:s'),
                                 $token_response['scope'] ?? ''
                             );
                             if ($token_saved) {
