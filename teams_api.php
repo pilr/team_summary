@@ -162,6 +162,22 @@ class TeamsAPIHelper {
     }
     
     /**
+     * Get channels only from selected teams
+     */
+    public function getSelectedTeamChannels($selectedTeamIds) {
+        $allChannels = $this->getAllChannels();
+        $selectedChannels = [];
+        
+        foreach ($allChannels as $channel) {
+            if (in_array($channel['teamId'], $selectedTeamIds)) {
+                $selectedChannels[] = $channel;
+            }
+        }
+        
+        return $selectedChannels;
+    }
+    
+    /**
      * Get channel members
      */
     public function getChannelMembers($teamId, $channelId) {

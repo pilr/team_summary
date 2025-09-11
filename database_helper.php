@@ -181,6 +181,55 @@ class DatabaseHelper {
         }
     }
     
+    public function createApiKeysTable() {
+        try {
+            $sql = "
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                openai_api_key TEXT,
+                client_id VARCHAR(255),
+                client_secret TEXT,
+                tenant_id VARCHAR(255),
+                secret_id VARCHAR(255),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB";
+            
+            $result = $this->pdo->exec($sql);
+            
+            // Verify table was created
+            $tableCheckStmt = $this->pdo->query("SHOW TABLES LIKE 'api_keys'");
+            $tableCheck = $tableCheckStmt->rowCount();
+            $tableCheckStmt->closeCursor();
+            
+            if (class_exists('ErrorLogger')) {
+                if ($tableCheck > 0) {
+                    ErrorLogger::logSuccess("API keys table created/verified", [
+                        'table_exists' => 'YES',
+                        'sql_result' => $result
+                    ]);
+                } else {
+                    ErrorLogger::logDatabaseError("table_creation", "API keys table creation verification failed", [
+                        'sql_result' => $result,
+                        'table_exists' => 'NO'
+                    ]);
+                }
+            }
+            
+            error_log("API keys table created/verified successfully - exists: " . ($tableCheck > 0 ? 'YES' : 'NO'));
+            return $tableCheck > 0;
+        } catch (PDOException $e) {
+            if (class_exists('ErrorLogger')) {
+                ErrorLogger::logDatabaseError("table_creation", "Failed to create api_keys table: " . $e->getMessage(), [
+                    'sql_error' => $e->getMessage(),
+                    'error_code' => $e->getCode()
+                ]);
+            }
+            error_log("Failed to create api_keys table: " . $e->getMessage());
+            throw $e;
+        }
+    }
+    
     public function getOAuthToken($user_id, $provider) {
         try {
             error_log("DatabaseHelper: getOAuthToken called for user_id=$user_id, provider=$provider");
@@ -366,6 +415,135 @@ class DatabaseHelper {
             return $stmt->fetch();
         } catch (PDOException $e) {
             error_log("Get user error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    // ==========================================
+    // TEAM SELECTION PREFERENCES
+    // ==========================================
+    
+    /**
+     * Create team_selection_preferences table if it doesn't exist
+     */
+    public function createTeamSelectionPreferencesTable() {
+        try {
+            $sql = "
+            CREATE TABLE IF NOT EXISTS team_selection_preferences (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                team_id VARCHAR(255) NOT NULL,
+                is_selected BOOLEAN DEFAULT TRUE,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                
+                UNIQUE KEY unique_user_team (user_id, team_id),
+                INDEX idx_user_id (user_id),
+                INDEX idx_team_id (team_id)
+            ) ENGINE=InnoDB";
+            
+            $result = $this->pdo->exec($sql);
+            
+            // Verify table was created
+            $tableCheckStmt = $this->pdo->query("SHOW TABLES LIKE 'team_selection_preferences'");
+            $tableCheck = $tableCheckStmt->rowCount();
+            $tableCheckStmt->closeCursor();
+            
+            error_log("Team selection preferences table created/verified successfully - exists: " . ($tableCheck > 0 ? 'YES' : 'NO'));
+            return $tableCheck > 0;
+        } catch (PDOException $e) {
+            error_log("Failed to create team_selection_preferences table: " . $e->getMessage());
+            throw $e;
+        }
+    }
+    
+    /**
+     * Save team selection preferences for a user
+     */
+    public function saveTeamSelectionPreferences($user_id, $selected_team_ids) {
+        try {
+            // First check if table exists, create if not
+            $tableCheck = $this->pdo->query("SHOW TABLES LIKE 'team_selection_preferences'");
+            $tableExists = $tableCheck->rowCount() > 0;
+            $tableCheck->closeCursor();
+            
+            if (!$tableExists) {
+                $this->createTeamSelectionPreferencesTable();
+            }
+            
+            // Start transaction
+            $this->pdo->beginTransaction();
+            
+            // Clear existing preferences for this user
+            $stmt = $this->pdo->prepare("DELETE FROM team_selection_preferences WHERE user_id = ?");
+            $stmt->execute([$user_id]);
+            $stmt->closeCursor();
+            
+            // Insert new preferences
+            if (!empty($selected_team_ids)) {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO team_selection_preferences (user_id, team_id, is_selected)
+                    VALUES (?, ?, TRUE)
+                ");
+                
+                foreach ($selected_team_ids as $team_id) {
+                    $stmt->execute([$user_id, $team_id]);
+                }
+                $stmt->closeCursor();
+            }
+            
+            // Commit transaction
+            $this->pdo->commit();
+            
+            error_log("Team selection preferences saved for user $user_id: " . json_encode($selected_team_ids));
+            return true;
+        } catch (PDOException $e) {
+            // Rollback transaction on error
+            $this->pdo->rollback();
+            error_log("Save team selection preferences error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get team selection preferences for a user
+     */
+    public function getTeamSelectionPreferences($user_id) {
+        try {
+            // Check if table exists
+            $tableCheck = $this->pdo->query("SHOW TABLES LIKE 'team_selection_preferences'");
+            $tableExists = $tableCheck->rowCount() > 0;
+            $tableCheck->closeCursor();
+            
+            if (!$tableExists) {
+                return []; // Return empty array if table doesn't exist
+            }
+            
+            $stmt = $this->pdo->prepare("
+                SELECT team_id 
+                FROM team_selection_preferences 
+                WHERE user_id = ? AND is_selected = TRUE
+            ");
+            $stmt->execute([$user_id]);
+            $results = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $stmt->closeCursor();
+            
+            return $results ?: [];
+        } catch (PDOException $e) {
+            error_log("Get team selection preferences error: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Check if a team is selected by a user
+     */
+    public function isTeamSelected($user_id, $team_id) {
+        try {
+            $selected_teams = $this->getTeamSelectionPreferences($user_id);
+            return in_array($team_id, $selected_teams);
+        } catch (Exception $e) {
+            error_log("Check team selection error: " . $e->getMessage());
             return false;
         }
     }

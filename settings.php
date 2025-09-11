@@ -196,6 +196,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <span>Summaries</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="team_management.php" class="nav-link">
+                        <i class="fas fa-users-cog"></i>
+                        <span>Team Management</span>
+                    </a>
+                </li>
                 <li class="nav-item active">
                     <a href="settings.php" class="nav-link">
                         <i class="fas fa-cog"></i>

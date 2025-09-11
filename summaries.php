@@ -62,9 +62,26 @@ $channel_filter = $_GET['channel'] ?? 'all';
 $type_filter = $_GET['type'] ?? 'all';
 $custom_start = $_GET['start'] ?? '';
 $custom_end = $_GET['end'] ?? '';
+$is_ajax = isset($_GET['ajax']) && $_GET['ajax'] === '1';
 
 // Get channels from Teams API with caching for better performance
-$channels = $teamsAPI->getAllChannels();
+$all_channels = $teamsAPI->getAllChannels();
+
+// Filter channels based on user's team selection preferences
+$user_selected_teams = $db->getTeamSelectionPreferences($user_id);
+$channels = [];
+
+if (!empty($user_selected_teams)) {
+    // Filter channels to only include selected teams
+    foreach ($all_channels as $channel) {
+        if (in_array($channel['teamId'], $user_selected_teams)) {
+            $channels[] = $channel;
+        }
+    }
+} else {
+    // If no team selection preferences exist, use all channels (backward compatibility)
+    $channels = $all_channels;
+}
 
 // Performance optimization: Limit concurrent API calls
 $max_channels_to_process = 10; // Limit the number of channels for performance
@@ -444,6 +461,70 @@ function generateSummaryCards($channels, $teamsAPI, $channel_filter, $date_range
 // Generate real summary cards from API data
 $summary_cards = generateSummaryCards($channels, $teamsAPI, $channel_filter, $date_range, $custom_start, $custom_end);
 
+// Handle AJAX requests - return only the content that needs to be updated
+if ($is_ajax) {
+    // Clear any previous output
+    ob_clean();
+    
+    // Set HTML header
+    header('Content-Type: text/html; charset=utf-8');
+    
+    // Start capturing output for the summary cards section
+    echo '<div class="summaries-grid" id="summariesGrid">';
+    
+    if (empty($summary_cards)) {
+        echo '<div class="no-data-message">';
+        echo '<i class="fas fa-info-circle"></i>';
+        if (!$is_user_connected) {
+            echo '<h3>Microsoft Account Not Connected</h3>';
+            echo '<p>Please connect your Microsoft account to access Teams data.</p>';
+            echo '<a href="account.php" class="btn btn-primary">';
+            echo '<i class="fas fa-link"></i> Connect Microsoft Account';
+            echo '</a>';
+        } else {
+            echo '<h3>No Teams Data Available</h3>';
+            echo '<p>No Teams data available for the selected time period.</p>';
+        }
+        echo '</div>';
+    } else {
+        foreach ($summary_cards as $card) {
+            echo '<div class="card summary-card">';
+            echo '<div class="summary-card-header">';
+            echo '<h3>' . htmlspecialchars($card['channel']) . '</h3>';
+            if (isset($card['teamName'])) {
+                echo '<span class="team-badge">' . htmlspecialchars($card['teamName']) . '</span>';
+            }
+            echo '</div>';
+            
+            echo '<div class="summary-card-content">';
+            if (isset($card['messageCount'])) {
+                echo '<div class="summary-stat">';
+                echo '<span class="stat-value">' . $card['messageCount'] . '</span>';
+                echo '<span class="stat-label">Messages</span>';
+                echo '</div>';
+            }
+            if (isset($card['urgentCount']) && $card['urgentCount'] > 0) {
+                echo '<div class="summary-stat urgent">';
+                echo '<span class="stat-value">' . $card['urgentCount'] . '</span>';
+                echo '<span class="stat-label">Urgent</span>';
+                echo '</div>';
+            }
+            if (isset($card['mentionsCount']) && $card['mentionsCount'] > 0) {
+                echo '<div class="summary-stat mentions">';
+                echo '<span class="stat-value">' . $card['mentionsCount'] . '</span>';
+                echo '<span class="stat-label">Mentions</span>';
+                echo '</div>';
+            }
+            echo '</div>';
+            echo '</div>';
+        }
+    }
+    
+    echo '</div>'; // Close summaries-grid
+    
+    exit(); // Stop execution for AJAX requests
+}
+
 /**
  * Test if the issue is permissions-related (403 Forbidden)
  */
@@ -750,6 +831,31 @@ function getBadgeText($type) {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+    
+    .loading-indicator {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 3rem;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+    
+    .loading-indicator i {
+        font-size: 3rem;
+        color: var(--primary-color);
+        animation: spin 1s linear infinite;
+    }
+    
+    .error-indicator {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 3rem;
+        text-align: center;
+    }
 
     .ai-error {
         text-align: center;
@@ -784,6 +890,12 @@ function getBadgeText($type) {
                     <a href="summaries.php" class="nav-link">
                         <i class="fas fa-file-alt"></i>
                         <span>Summaries</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="team_management.php" class="nav-link">
+                        <i class="fas fa-users-cog"></i>
+                        <span>Team Management</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -1149,6 +1261,13 @@ function getBadgeText($type) {
                             </button>
                         </div>
                     </div>
+                    
+                    <?php if (!empty($user_selected_teams) && count($all_channels) > count($channels)): ?>
+                    <div class="team-filter-notice" style="background: #e0f2fe; border: 1px solid #0284c7; color: #0c4a6e; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-filter"></i>
+                        <span>Showing data from <?php echo count($user_selected_teams); ?> selected teams (<?php echo count($channels); ?> channels). <a href="team_management.php" style="color: #0284c7; text-decoration: underline;">Manage team selection</a></span>
+                    </div>
+                    <?php endif; ?>
                     
                     <div class="summaries-grid" id="summariesGrid">
                         <?php if (empty($summary_cards)): ?>
@@ -1574,12 +1693,14 @@ function getBadgeText($type) {
                 });
         }
         
-        // Date filter functionality
+        // Date filter functionality with AJAX
         document.addEventListener('DOMContentLoaded', function() {
             const datePresetButtons = document.querySelectorAll('.date-preset');
             
             datePresetButtons.forEach(button => {
-                button.addEventListener('click', function() {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault(); // Prevent any default action
+                    
                     const selectedRange = this.getAttribute('data-range');
                     const currentUrl = new URL(window.location);
                     
@@ -1587,18 +1708,28 @@ function getBadgeText($type) {
                     currentUrl.searchParams.set('range', selectedRange);
                     
                     // Keep other filters
-                    if (currentUrl.searchParams.get('channel')) {
-                        currentUrl.searchParams.set('channel', currentUrl.searchParams.get('channel'));
+                    const currentChannel = currentUrl.searchParams.get('channel');
+                    const currentType = currentUrl.searchParams.get('type');
+                    
+                    if (currentChannel) {
+                        currentUrl.searchParams.set('channel', currentChannel);
                     }
-                    if (currentUrl.searchParams.get('type')) {
-                        currentUrl.searchParams.set('type', currentUrl.searchParams.get('type'));
+                    if (currentType) {
+                        currentUrl.searchParams.set('type', currentType);
                     }
+                    
+                    // Update active button state
+                    datePresetButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
                     
                     // Show loading indicator
                     showLoadingIndicator();
                     
-                    // Reload the page with new filter
-                    window.location.href = currentUrl.toString();
+                    // Update URL without page refresh
+                    window.history.pushState({}, '', currentUrl.toString());
+                    
+                    // Load new data via AJAX
+                    loadSummaryData(selectedRange, currentChannel || 'all', currentType || 'all');
                 });
             });
             
@@ -1607,7 +1738,8 @@ function getBadgeText($type) {
             const customDateInputs = document.querySelector('.custom-date-inputs');
             
             if (customDateButton && customDateInputs) {
-                customDateButton.addEventListener('click', function() {
+                customDateButton.addEventListener('click', function(e) {
+                    e.preventDefault();
                     const isActive = this.classList.contains('active');
                     
                     // Remove active class from all buttons
@@ -1622,6 +1754,28 @@ function getBadgeText($type) {
                         customDateInputs.style.display = 'none';
                     }
                 });
+                
+                // Handle custom date form submission
+                const customDateForm = customDateInputs.querySelector('form');
+                if (customDateForm) {
+                    customDateForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        
+                        const startDate = this.querySelector('input[name="start"]').value;
+                        const endDate = this.querySelector('input[name="end"]').value;
+                        
+                        if (startDate && endDate) {
+                            const currentUrl = new URL(window.location);
+                            currentUrl.searchParams.set('range', 'custom');
+                            currentUrl.searchParams.set('start', startDate);
+                            currentUrl.searchParams.set('end', endDate);
+                            
+                            showLoadingIndicator();
+                            window.history.pushState({}, '', currentUrl.toString());
+                            loadCustomDateRange(startDate, endDate);
+                        }
+                    });
+                }
             }
         });
         
@@ -1663,6 +1817,123 @@ function getBadgeText($type) {
                 border-radius: 8px;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             `;
+        }
+        
+        function loadSummaryData(range, channel, type) {
+            const params = new URLSearchParams({
+                range: range,
+                channel: channel,
+                type: type,
+                ajax: '1'
+            });
+            
+            fetch(`summaries.php?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(html => {
+                updatePageContent(html);
+                hideLoadingIndicator();
+                console.log('Summary data loaded successfully');
+            })
+            .catch(error => {
+                console.error('Error loading summary data:', error);
+                hideLoadingIndicator();
+                showErrorMessage('Error loading data. Please try again.');
+            });
+        }
+        
+        function loadCustomDateRange(startDate, endDate) {
+            const params = new URLSearchParams({
+                range: 'custom',
+                start: startDate,
+                end: endDate,
+                channel: 'all',
+                type: 'all',
+                ajax: '1'
+            });
+            
+            fetch(`summaries.php?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.text())
+            .then(html => {
+                updatePageContent(html);
+                hideLoadingIndicator();
+            })
+            .catch(error => {
+                console.error('Error loading custom date range:', error);
+                hideLoadingIndicator();
+                showErrorMessage('Error loading custom date range.');
+            });
+        }
+        
+        function updatePageContent(html) {
+            // Extract the summary cards content from the response
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            const newSummaryCards = tempDiv.querySelector('.summary-cards');
+            const currentSummaryCards = document.querySelector('.summary-cards');
+            
+            if (newSummaryCards && currentSummaryCards) {
+                currentSummaryCards.innerHTML = newSummaryCards.innerHTML;
+            }
+            
+            // Update stats section if it exists
+            const newStats = tempDiv.querySelector('.stats-overview');
+            const currentStats = document.querySelector('.stats-overview');
+            
+            if (newStats && currentStats) {
+                currentStats.innerHTML = newStats.innerHTML;
+            }
+            
+            // Reset AI summary section
+            const aiSummaryContent = document.getElementById('aiSummaryContent');
+            if (aiSummaryContent) {
+                aiSummaryContent.innerHTML = `
+                    <div class="ai-summary-placeholder">
+                        <i class="fas fa-brain"></i>
+                        <p class="ai-summary-description">The AI will analyze key topics, decisions, action items, and team activity patterns to provide you with actionable insights.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function hideLoadingIndicator() {
+            const loadingOverlay = document.querySelector('.loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.remove();
+            }
+        }
+        
+        function showErrorMessage(message) {
+            const mainContent = document.querySelector('.summary-cards');
+            if (mainContent) {
+                mainContent.innerHTML = `
+                    <div class="error-indicator" style="text-align: center; padding: 2rem; color: #e74c3c;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                        <p style="font-size: 1.1rem; margin-bottom: 1rem;">${message}</p>
+                        <button onclick="location.reload()" class="btn btn-primary" style="background: #6366f1; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer;">
+                            <i class="fas fa-refresh"></i> Reload Page
+                        </button>
+                    </div>
+                `;
+            }
         }
     </script>
     
