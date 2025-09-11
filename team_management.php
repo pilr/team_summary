@@ -40,7 +40,11 @@ if ($_POST && isset($_POST['action'])) {
 }
 
 // Get all available teams
-$all_teams = $teamsAPI->getTeams();
+if ($user_is_connected) {
+    $all_teams = $teamsAPI->getUserTeams();
+} else {
+    $all_teams = $teamsAPI->getTeams();
+}
 
 // Group channels by team
 $teams_with_channels = [];
